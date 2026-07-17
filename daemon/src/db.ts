@@ -99,6 +99,10 @@ export function openDb(dataDir: string): DatabaseSync {
       content TEXT NOT NULL,
       at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
     CREATE INDEX IF NOT EXISTS idx_ledger_task ON ledger(task_id);
     CREATE INDEX IF NOT EXISTS idx_traces_task ON traces(task_id);

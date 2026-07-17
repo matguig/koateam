@@ -8,8 +8,10 @@
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openDb } from './db.js'
+import { Foundation } from './foundation.js'
 import { InterventionRunner } from './interventions.js'
 import { buildRegistry } from './providers.js'
+import { RitualScheduler } from './rituals.js'
 import { ensureSeeded } from './seed.js'
 import { createApi } from './server.js'
 import { Store } from './store.js'
@@ -29,18 +31,23 @@ function main(): void {
 
   const db = openDb(DATA_DIR)
   const store = new Store(db)
-  const workspace = ensureSeeded(store)
-  const providers = buildRegistry()
+  // Sans workspace, l'app démarre sur la fondation (cabinet de recrutement).
+  // KOATEAM_SEED=demo amorce l'entreprise de démonstration (tests, endurance).
+  if (process.env.KOATEAM_SEED === 'demo') ensureSeeded(store)
+  const providers = buildRegistry(store.settingGet('anthropic_api_key'))
 
   let peakRss = 0
   let watchdogAlerts = 0
 
   const runner = new InterventionRunner(store, providers, DATA_DIR, () => api.broadcast())
+  const foundation = new Foundation(store)
+  const rituals = new RitualScheduler(store, runner, () => api.broadcast())
   const api = createApi({
-    store, runner, startedAt: Date.now(),
+    store, runner, foundation, providers, startedAt: Date.now(),
     peakRss: () => peakRss,
     watchdogAlerts: () => watchdogAlerts,
   })
+  rituals.start()
 
   // Ronde technique du démon (SPEC-V1 §3.7) : du code, pas du LLM, coût zéro.
   setInterval(() => {
@@ -53,7 +60,8 @@ function main(): void {
   }, 1000).unref()
 
   api.server.listen(PORT, '127.0.0.1', () => {
+    const ws = store.getWorkspace()
     console.log(`[koateam-daemon] http+ws sur 127.0.0.1:${PORT} · données : ${DATA_DIR}`)
-    console.log(`[koateam-daemon] workspace « ${workspace.name} » · providers : ${[...providers.keys()].join(', ')}`)
+    console.log(`[koateam-daemon] ${ws ? `workspace « ${ws.name} »` : 'aucun workspace (fondation en attente)'} · providers : ${[...providers.keys()].join(', ')}`)
   })
 }

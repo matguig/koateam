@@ -11,9 +11,10 @@ import type { Provider } from './providers.js'
 import type { Employee, Store, Task, TraceEvent } from './store.js'
 
 interface QueueItem {
-  kind: 'plan' | 'execute'
-  taskId: string
+  kind: 'plan' | 'execute' | 'ritual'
+  taskId: string | null
   employeeId: string
+  brief?: string
 }
 
 export class InterventionRunner {
@@ -31,11 +32,27 @@ export class InterventionRunner {
 
   /** Point d'entrée du flux cœur : l'utilisateur a créé une tâche. */
   submitTask(taskId: string): void {
-    const ws = this.store.getWorkspace()!
+    const ws = this.store.getWorkspace()
+    if (!ws) throw new Error('aucun workspace — fondez d’abord l’entreprise')
     const ceo = this.store.listEmployees(ws.id).find((e) => e.role === 'ceo')
     if (!ceo) throw new Error('aucun CEO dans le workspace')
     this.store.updateTask(taskId, { status: 'planning' })
     this.enqueue({ kind: 'plan', taskId, employeeId: ceo.id })
+  }
+
+  isBusy(): boolean {
+    return this.running || this.queue.length > 0
+  }
+
+  /** Ronde managériale : le CEO fait le point (rituels, SPEC-V1 §3.7). */
+  submitRitual(kind: string, brief: string): void {
+    const ws = this.store.getWorkspace()
+    if (!ws) return
+    const ceo = this.store.listEmployees(ws.id).find((e) => e.role === 'ceo')
+    if (!ceo) return
+    // Une seule ronde en file à la fois
+    if (this.queue.some((q) => q.kind === 'ritual')) return
+    this.enqueue({ kind: 'ritual', taskId: null, employeeId: ceo.id, brief: `${kind}\n${brief}` })
   }
 
   resumeTask(taskId: string): void {
@@ -81,25 +98,28 @@ export class InterventionRunner {
   }
 
   private async run(item: QueueItem): Promise<void> {
-    const ws = this.store.getWorkspace()!
-    const task = this.store.getTask(item.taskId)
+    const ws = this.store.getWorkspace()
     const employee = this.store.getEmployee(item.employeeId)
-    if (!task || !employee) return
+    if (!ws || !employee) return
+    const task = item.taskId ? this.store.getTask(item.taskId) : null
+    if (item.kind !== 'ritual' && !task) return
 
-    // La sous-tâche est budgétée sur la tâche PRINCIPALE (comptabilité d'engagement)
-    const mainTask = task.parent_id ? this.store.getTask(task.parent_id)! : task
+    // La sous-tâche est budgétée sur la tâche PRINCIPALE (comptabilité d'engagement).
+    // Une ronde n'a pas de tâche : elle est budgétée sur l'enveloppe du workspace.
+    const mainTask = task ? (task.parent_id ? this.store.getTask(task.parent_id)! : task) : null
     const events: TraceEvent[] = []
     let tokensIn = 0
     let tokensOut = 0
     let cost = 0
     const traceId = this.store.traceStart({
-      workspace_id: ws.id, employee_id: employee.id, task_id: task.id,
-      trigger: item.kind === 'plan' ? 'Nouvelle tâche à planifier' : 'Sous-tâche assignée',
+      workspace_id: ws.id, employee_id: employee.id, task_id: task?.id ?? null,
+      trigger: item.kind === 'plan' ? 'Nouvelle tâche à planifier'
+        : item.kind === 'ritual' ? 'Ronde managériale' : 'Sous-tâche assignée',
     })
     const push = (kind: string, text: string) =>
       events.push({ at: new Date().toISOString(), kind, text })
 
-    if (item.kind === 'execute') this.store.updateTask(task.id, { status: 'in_progress' })
+    if (item.kind === 'execute' && task) this.store.updateTask(task.id, { status: 'in_progress' })
     this.onChange()
 
     const script = process.argv[1]
@@ -108,13 +128,15 @@ export class InterventionRunner {
       env: {
         ...process.env,
         KOATEAM_MISSION: JSON.stringify({
-          id: task.id,
-          goal: item.kind === 'plan'
+          id: task?.id ?? 'ritual',
+          goal: item.kind === 'plan' && task
             ? `${task.title}\n\n${task.description}`
-            : `${task.title} (tâche parente : ${mainTask.title})`,
+            : item.kind === 'ritual'
+              ? item.brief ?? ''
+              : `${task!.title} (tâche parente : ${mainTask!.title})`,
           model: employee.model,
-          role: item.kind === 'plan' ? 'ceo' : 'specialist',
-          workzone: join(this.dataDir, 'workzones', mainTask.id),
+          role: item.kind === 'plan' ? 'ceo' : item.kind === 'ritual' ? 'ronde' : 'specialist',
+          workzone: join(this.dataDir, 'workzones', mainTask?.id ?? '_rituels'),
         }),
       },
       stdio: ['pipe', 'pipe', 'inherit'],
@@ -142,7 +164,7 @@ export class InterventionRunner {
           report = String(msg.params.report)
           return
         }
-        if (msg.method === 'task.create_subtask' && msg.id !== undefined) {
+        if (msg.method === 'task.create_subtask' && msg.id !== undefined && mainTask) {
           const { title, department } = msg.params as { title: string; department?: string }
           const employees = this.store.listEmployees(ws.id)
           const assignee =
@@ -170,8 +192,12 @@ export class InterventionRunner {
             model: string; system: string
             messages: { role: 'user' | 'assistant'; content: string }[]
           }
-          // Garde-fou budgétaire DUR : vérifié AVANT l'appel, sur la tâche principale
-          if (this.store.spentOnTask(mainTask.id) >= mainTask.budget_allocated) {
+          // Garde-fou budgétaire DUR : vérifié AVANT l'appel — tâche principale
+          // pour le travail, enveloppe du workspace pour les rondes
+          const exceeded = mainTask
+            ? this.store.spentOnTask(mainTask.id) >= mainTask.budget_allocated
+            : this.store.ledgerTotals(ws.id).consumption >= ws.budget_amount
+          if (exceeded) {
             child.stdin.write(JSON.stringify({ id: msg.id, error: 'budget_exceeded' }) + '\n')
             return
           }
@@ -182,8 +208,8 @@ export class InterventionRunner {
               cost += c; tokensIn += res.inputTokens; tokensOut += res.outputTokens
               this.store.ledgerAppend({
                 workspace_id: ws.id, type: 'consumption', amount: c,
-                task_id: mainTask.id, employee_id: employee.id,
-                detail: { model, inputTokens: res.inputTokens, outputTokens: res.outputTokens, subtask: task.id !== mainTask.id ? task.id : undefined },
+                task_id: mainTask?.id ?? null, employee_id: employee.id,
+                detail: { model, inputTokens: res.inputTokens, outputTokens: res.outputTokens, subtask: task && mainTask && task.id !== mainTask.id ? task.id : undefined },
               })
               push('llm', `${model} · ${res.inputTokens} tok in / ${res.outputTokens} tok out · ${c.toFixed(6)} $`)
               child.stdin.write(JSON.stringify({ id: msg.id, result: { content: res.content, cost: c } }) + '\n')
@@ -197,7 +223,13 @@ export class InterventionRunner {
 
     push('issue', `${outcome} — ${report}`)
     this.store.traceFinish(traceId, events, tokensIn, tokensOut, cost, outcome)
-    this.afterIntervention(item, ws.id, task, mainTask, employee, outcome, report)
+    if (item.kind === 'ritual') {
+      if (outcome === 'done' && report) {
+        this.store.messageAdd({ workspace_id: ws.id, from_id: employee.id, to_id: 'user', content: report })
+      }
+    } else if (task && mainTask) {
+      this.afterIntervention(item, ws.id, task, mainTask, employee, outcome, report)
+    }
     this.onChange()
   }
 
@@ -216,6 +248,7 @@ export class InterventionRunner {
       })
       // On purge les sous-tâches en file pour cette tâche principale
       this.queue = this.queue.filter((q) => {
+        if (!q.taskId) return true
         const t = this.store.getTask(q.taskId)
         return t?.parent_id !== mainTask.id && q.taskId !== mainTask.id
       })

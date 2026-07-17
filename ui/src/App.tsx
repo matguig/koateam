@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { useData } from './data/DataContext'
 import { EmployeeDrawer } from './components/EmployeeDrawer'
@@ -15,8 +15,17 @@ export default function App() {
   const [tab, setTab] = useState<Screen>('taches')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [openEmployee, setOpenEmployee] = useState<string | null>(null)
-  const { employees } = useData()
+  const { employees, live, hasWorkspace } = useData()
   const ceoId = Object.values(employees).find((e) => e.role === 'ceo')?.id ?? 'lea'
+
+  // Pas encore d'entreprise → l'app démarre sur la fondation ;
+  // dès la signature du contrat, bascule sur les Tâches.
+  const hadWorkspace = useRef(hasWorkspace)
+  useEffect(() => {
+    if (live && !hasWorkspace) setTab('fondation')
+    if (live && hasWorkspace && !hadWorkspace.current) setTab('taches')
+    hadWorkspace.current = hasWorkspace
+  }, [live, hasWorkspace])
 
   return (
     <div data-theme={theme} style={{

@@ -29,8 +29,20 @@ export class MockProvider implements Provider {
   async complete(_model: string, system: string, messages: ChatMessage[]): Promise<LlmResult> {
     const turn = messages.filter((m) => m.role === 'assistant').length
     const goal = messages[0]?.content ?? ''
-    // Deux scénarios déterministes selon le rôle indiqué dans le prompt système :
-    // un CEO décompose et délègue ; un exécutant produit puis rapporte.
+    // Scénarios déterministes selon le rôle indiqué dans le prompt système :
+    // un CEO décompose et délègue ; une ronde rapporte ; un exécutant produit.
+    if (system.includes('RÔLE : RONDE')) {
+      const inputChars = system.length + messages.reduce((n, m) => n + m.content.length, 0)
+      const facts = goal.split('\n').filter((l) => l.startsWith('- ')).map((l) => l.slice(2))
+      return {
+        content: JSON.stringify({
+          action: 'final',
+          report: `Ronde de suivi effectuée : ${facts.join(' · ')}. J'ai vérifié avec les HEADs — rien ne requiert votre intervention immédiate.`,
+        }),
+        inputTokens: Math.ceil(inputChars / 4),
+        outputTokens: 120,
+      }
+    }
     const actions = system.includes('RÔLE : CEO')
       ? [
           { action: 'create_subtask', args: { title: `Analyse & production — ${goal.slice(0, 60)}`, department: 'Marketing' } },
@@ -78,10 +90,16 @@ export class AnthropicProvider implements Provider {
   }
 }
 
-export function buildRegistry(): Map<string, Provider> {
+export function buildRegistry(anthropicKey?: string | null): Map<string, Provider> {
   const registry = new Map<string, Provider>()
   registry.set('mock', new MockProvider())
-  const key = process.env.ANTHROPIC_API_KEY
+  const key = anthropicKey ?? process.env.ANTHROPIC_API_KEY
   if (key) registry.set('anthropic', new AnthropicProvider(key))
   return registry
+}
+
+/** Met à jour la clé Anthropic à chaud (réglages). */
+export function applyAnthropicKey(registry: Map<string, Provider>, key: string | null): void {
+  if (key) registry.set('anthropic', new AnthropicProvider(key))
+  else registry.delete('anthropic')
 }

@@ -26,6 +26,7 @@ const INBOX_ICONS: Record<string, [string, string]> = {
   budget_pause_alert: ['⚠', '#ff453a'],
   deliverable_review: ['✓', '#30d158'],
   question: ['?', '#bf5af2'],
+  morning_report: ['☕', '#bf5af2'],
   info: ['ℹ', '#0a84ff'],
 }
 

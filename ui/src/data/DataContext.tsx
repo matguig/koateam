@@ -34,6 +34,8 @@ const LEDGER_LABELS: Record<string, [string, string]> = {
 
 export interface Data {
   live: boolean
+  hasWorkspace: boolean
+  settings: DaemonState['settings'] | null
   workspaceName: string
   workspaceMission: string
   budgetAmount: number
@@ -47,7 +49,15 @@ export interface Data {
   taskStatusRaw: Record<string, string>
 }
 
-function project(s: DaemonState): Omit<Data, 'live' | 'actions' | 'traces'> {
+const EMPTY_PROJECTION = {
+  workspaceName: 'KoaTeam', workspaceMission: '', budgetAmount: 0,
+  employees: {}, tasks: [], journal: [],
+  totals: { consumption: 0, engaged: 0, available: 0 },
+  inbox: [], taskStatusRaw: {},
+}
+
+function project(s: DaemonState): Omit<Data, 'live' | 'actions' | 'traces' | 'hasWorkspace' | 'settings'> {
+  if (!s.workspace) return EMPTY_PROJECTION
   const employees: Record<string, Employee> = {}
   const activeLoad: Record<string, number> = {}
   for (const t of s.tasks) {
@@ -117,9 +127,9 @@ function project(s: DaemonState): Omit<Data, 'live' | 'actions' | 'traces'> {
   const engaged = tasks.reduce((n, t) => n + t.eng, 0)
   const consumption = s.totals.consumption ?? 0
   return {
-    workspaceName: s.workspace.name,
-    workspaceMission: s.workspace.mission,
-    budgetAmount: s.workspace.budget_amount,
+    workspaceName: s.workspace!.name,
+    workspaceMission: s.workspace!.mission,
+    budgetAmount: s.workspace!.budget_amount,
     employees, tasks, journal,
     totals: {
       consumption, engaged,
@@ -130,7 +140,7 @@ function project(s: DaemonState): Omit<Data, 'live' | 'actions' | 'traces'> {
   }
 }
 
-const DEMO: Omit<Data, 'live' | 'actions' | 'traces'> = {
+const DEMO: Omit<Data, 'live' | 'actions' | 'traces' | 'hasWorkspace' | 'settings'> = {
   workspaceName: 'Lancement SaaS Photo',
   workspaceMission: 'Démo — démon non connecté',
   budgetAmount: 400,
@@ -142,7 +152,7 @@ const DEMO: Omit<Data, 'live' | 'actions' | 'traces'> = {
   taskStatusRaw: {},
 }
 
-const Ctx = createContext<Data>({ ...DEMO, live: false, actions, traces: [] })
+const Ctx = createContext<Data>({ ...DEMO, live: false, hasWorkspace: true, settings: null, actions, traces: [] })
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DaemonState | null>(null)
@@ -164,8 +174,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<Data>(() => {
-    const base = live && state ? project(state) : DEMO
-    return { ...base, live: live && !!state, actions, traces }
+    const isLive = live && !!state
+    const base = isLive ? project(state!) : DEMO
+    return {
+      ...base,
+      live: isLive,
+      hasWorkspace: isLive ? !!state!.workspace : true,
+      settings: isLive ? state!.settings : null,
+      actions, traces,
+    }
   }, [live, state, traces])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

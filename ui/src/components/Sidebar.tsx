@@ -41,8 +41,8 @@ export function Sidebar({ tab, theme, onNavigate, onToggleTheme, onOpenCeo }: {
   const ceo = Object.values(data.employees).find((e) => e.role === 'ceo')
   const activeCount = Object.values(data.employees).filter((e) => !e.archived).length
   const spent = data.totals.consumption
-  const spentPct = Math.min(100, Math.round((spent / data.budgetAmount) * 100))
-  const engPct = Math.min(100 - spentPct, Math.round((data.totals.engaged / data.budgetAmount) * 100))
+  const spentPct = data.budgetAmount > 0 ? Math.min(100, Math.round((spent / data.budgetAmount) * 100)) : 0
+  const engPct = data.budgetAmount > 0 ? Math.min(100 - spentPct, Math.round((data.totals.engaged / data.budgetAmount) * 100)) : 0
   const inboxCount = data.live ? data.inbox.length : 3
 
   return (
@@ -113,16 +113,18 @@ export function Sidebar({ tab, theme, onNavigate, onToggleTheme, onOpenCeo }: {
         }}>{theme === 'dark' ? '☾ Sombre' : '☀ Clair'}</button>
       </div>
 
-      <div className="hov-accent" onClick={onOpenCeo} style={{
-        display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)',
-        border: '1px solid var(--border)', borderRadius: 12, padding: 10, cursor: 'pointer',
-      }}>
-        <Avatar color={ceo?.color ?? '#bf5af2'} init={ceo ? ceo.name.split(' ').map((w) => w[0]).join('').slice(0, 2) : 'LF'} size={32} fontSize={12} />
-        <span style={{ minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 12, fontWeight: 600 }}>{ceo ? `${ceo.name.split(' ')[0]} · CEO` : 'Léa Fontaine · CEO'}</span>
-          <span style={{ display: 'block', fontSize: 11, color: 'var(--accent)' }}>Rapport du matin →</span>
-        </span>
-      </div>
+      {(!data.live || ceo) && (
+        <div className="hov-accent" onClick={onOpenCeo} style={{
+          display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)',
+          border: '1px solid var(--border)', borderRadius: 12, padding: 10, cursor: 'pointer',
+        }}>
+          <Avatar color={ceo?.color ?? '#bf5af2'} init={ceo ? ceo.name.split(' ').map((w) => w[0]).join('').slice(0, 2) : 'LF'} size={32} fontSize={12} />
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 12, fontWeight: 600 }}>{ceo ? `${ceo.name.split(' ')[0]} · CEO` : 'Léa Fontaine · CEO'}</span>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--accent)' }}>Rapport du matin →</span>
+          </span>
+        </div>
+      )}
     </aside>
   )
 }

@@ -30,13 +30,26 @@ export interface DaemonLedgerRow {
   task_id: string | null; employee_id: string | null; detail: string | null
 }
 
+export interface DaemonSettings {
+  anthropicConfigured: boolean
+  ritualTickMinutes: number
+  morningReportTime: string
+}
+
 export interface DaemonState {
-  workspace: { id: string; name: string; mission: string; budget_amount: number }
+  workspace: { id: string; name: string; mission: string; budget_amount: number } | null
   employees: DaemonEmployee[]
   tasks: DaemonTask[]
   inbox: DaemonInboxItem[]
   totals: Record<string, number>
   ledger: DaemonLedgerRow[]
+  settings: DaemonSettings
+}
+
+export interface FoundationReply {
+  reply: string
+  stage: string
+  profiles?: { name: string; badge: string; color: string; pitch: string; traits: number[] }[]
 }
 
 export interface DaemonTrace {
@@ -70,6 +83,18 @@ export const actions = {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ amount }),
     }),
   resolveInbox: (id: string) => fetch(`${DAEMON_URL}/inbox/${id}/resolve`, { method: 'POST' }),
+  foundationMessage: async (text: string): Promise<FoundationReply> =>
+    (await fetch(`${DAEMON_URL}/foundation/message`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }),
+    })).json(),
+  foundationSign: (input: { ceoIndex: number; traits?: number[]; departments?: string[] }) =>
+    fetch(`${DAEMON_URL}/foundation/sign`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input),
+    }),
+  saveSettings: (s: Record<string, unknown>) =>
+    fetch(`${DAEMON_URL}/settings`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(s),
+    }),
 }
 
 export function subscribe(onChange: () => void): () => void {

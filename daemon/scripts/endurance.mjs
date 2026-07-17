@@ -18,7 +18,7 @@ const BASE = `http://127.0.0.1:${PORT}`
 const dataDir = mkdtempSync(join(tmpdir(), 'koateam-endurance-'))
 
 const daemon = spawn(process.execPath, [join(import.meta.dirname, '../dist/index.js')], {
-  env: { ...process.env, KOATEAM_PORT: String(PORT), KOATEAM_DATA: dataDir },
+  env: { ...process.env, KOATEAM_PORT: String(PORT), KOATEAM_DATA: dataDir, KOATEAM_SEED: 'demo' },
   stdio: 'inherit',
 })
 

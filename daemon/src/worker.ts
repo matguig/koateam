@@ -11,7 +11,7 @@ interface Mission {
   id: string
   goal: string
   model: string
-  role: 'ceo' | 'specialist'
+  role: 'ceo' | 'specialist' | 'ronde'
   workzone: string
 }
 
@@ -47,6 +47,10 @@ Réponds UNIQUEMENT par un objet JSON, sans autre texte :
 - {"action":"create_subtask","args":{"title":"...","department":"Marketing|Dev"}} pour déléguer une sous-tâche
 - {"action":"final","report":"..."} quand la décomposition est complète (note d'évaluation : complexité, % du budget).`
 
+const SYSTEM_RONDE = `RÔLE : RONDE. Tu es le CEO virtuel : c'est ta ronde de suivi périodique.
+On te donne l'état de l'entreprise ; produis un court rapport de situation pour le propriétaire.
+Réponds UNIQUEMENT par : {"action":"final","report":"..."}`
+
 function runTool(workzone: string, tool: string, args: Record<string, string>): string {
   const safe = (p: string) => {
     const full = normalize(join(workzone, p))
@@ -69,7 +73,7 @@ function runTool(workzone: string, tool: string, args: Record<string, string>): 
 export async function runWorker(): Promise<void> {
   const mission: Mission = JSON.parse(process.env.KOATEAM_MISSION ?? '{}')
   mkdirSync(mission.workzone, { recursive: true })
-  const system = mission.role === 'ceo' ? SYSTEM_CEO : SYSTEM_SPECIALIST
+  const system = mission.role === 'ceo' ? SYSTEM_CEO : mission.role === 'ronde' ? SYSTEM_RONDE : SYSTEM_SPECIALIST
 
   const rl = createInterface({ input: process.stdin })
   rl.on('line', (line) => {

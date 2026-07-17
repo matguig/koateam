@@ -211,4 +211,25 @@ export class Store {
   messagesRecent(wsId: string, limit = 50): unknown[] {
     return this.db.prepare(`SELECT * FROM messages WHERE workspace_id = ? ORDER BY id DESC LIMIT ?`).all(wsId, limit)
   }
+
+  // --- réglages (clé/valeur) ---
+  settingGet(key: string): string | null {
+    const r = this.db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key) as { value: string } | undefined
+    return r?.value ?? null
+  }
+
+  settingSet(key: string, value: string): void {
+    this.db.prepare(
+      `INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    ).run(key, value)
+  }
+
+  updateWorkspace(id: string, fields: Partial<Pick<Workspace, 'name' | 'mission' | 'budget_amount'>>): void {
+    const sets: string[] = []
+    const vals: unknown[] = []
+    for (const [k, v] of Object.entries(fields)) { sets.push(`${k} = ?`); vals.push(v) }
+    if (!sets.length) return
+    vals.push(id)
+    this.db.prepare(`UPDATE workspaces SET ${sets.join(', ')} WHERE id = ?`).run(...(vals as never[]))
+  }
 }
