@@ -9,7 +9,10 @@
 
 import { execFileSync } from 'node:child_process'
 import { chmodSync, copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
+
+const require = createRequire(import.meta.url)
 
 const out = process.argv[2]
 if (!out) {
@@ -40,13 +43,15 @@ if (process.platform === 'darwin') {
   run('codesign', ['--remove-signature', outPath])
 }
 
-// 4. Injection du blob
+// 4. Injection du blob — postject invoqué via Node directement :
+// spawner npx.cmd échoue sous Windows (EINVAL, durcissement Node 22)
+const postjectCli = require.resolve('postject/dist/cli.js')
 const postjectArgs = [
-  '--yes', 'postject', outPath, 'NODE_SEA_BLOB', blob,
+  postjectCli, outPath, 'NODE_SEA_BLOB', blob,
   '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2',
 ]
 if (process.platform === 'darwin') postjectArgs.push('--macho-segment-name', 'NODE_SEA')
-run(process.platform === 'win32' ? 'npx.cmd' : 'npx', postjectArgs)
+run(process.execPath, postjectArgs)
 
 // 5. macOS : re-signature ad hoc
 if (process.platform === 'darwin') {
