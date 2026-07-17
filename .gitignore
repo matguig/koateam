@@ -1,0 +1,7 @@
+node_modules/
+daemon/dist/
+ui/dist/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+desktop/src-tauri/binaries/
+*.log

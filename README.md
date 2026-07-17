@@ -6,15 +6,19 @@ Un workspace = une entreprise : un CEO recruté via un cabinet virtuel (jauges d
 
 ## État du projet
 
-Phase de conception terminée, implémentation de l'UI en cours.
+Conception terminée · UI implémentée · **spike M0 validé (GO)** — prochaine étape : M1 (socle).
 
-| Document | Contenu |
+| Document / dossier | Contenu |
 |---|---|
 | [`BRAINSTORMING.md`](BRAINSTORMING.md) | Vision produit — 25 décisions actées |
 | [`SPEC-V1.md`](SPEC-V1.md) | Spécification de référence : entités, machines à états, flux, écrans, critères d'acceptation |
+| [`SPIKE-M0.md`](SPIKE-M0.md) | Rapport du spike GO/NO-GO : mesures mémoire, sidecar SEA, enseignements |
 | [`DESIGN-PROMPT.md`](DESIGN-PROMPT.md) | Prompt utilisé pour générer la maquette design |
 | [`design/`](design/) | Maquette Claude Design importée (`KoaTeam.dc.html`) — source de vérité visuelle |
 | [`ui/`](ui/) | **Front-end React + TypeScript + Vite** implémentant la maquette (données mock) |
+| [`daemon/`](daemon/) | **Démon Node/TS** : missions, workers éphémères, proxy LLM comptable, budgets, watchdog |
+| [`desktop/`](desktop/) | **Coquille Tauri v2** : webview + démon en sidecar (binaire SEA) |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | CI 3 OS : endurance mémoire + builds deb / dmg / nsis |
 
 ## Lancer l'UI
 
