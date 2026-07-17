@@ -50,9 +50,11 @@ Différences assumées : chez eux on "hire a virtual agent" et on discute ; chez
 Créer un workspace n'est pas un formulaire — c'est un **roleplay avec un cabinet de recrutement** :
 
 1. Le cabinet vous **interroge sur le projet** : nature, objectifs, contraintes, ton souhaité, dossiers de la machine concernés… Cette conversation configure tout le workspace.
-2. Il vous **propose plusieurs profils de CEO**, différenciés par leur caractère. Vous affinez avec des **jauges de traits** (façon création de personnage de jeu vidéo) : remise en question de vos demandes ↔ exécution docile, strict ↔ souple, prudent ↔ audacieux, etc.
-3. Vous fixez le cadre du CEO retenu : **mission, budget mensuel, liste des providers IA autorisés** (chaque provider/modèle a un coût que le CEO connaît).
+2. Il vous **propose plusieurs profils de CEO**, différenciés par leur caractère. Vous affinez avec des **jauges de traits** (façon création de personnage de jeu vidéo) : remise en question de vos demandes ↔ exécution docile · prudence / aversion au risque ↔ audace · rigueur ↔ souplesse · concision ↔ détail dans les rapports · formel ↔ familier · gestion budgétaire serrée ↔ généreuse — liste extensible.
+3. Vous fixez le cadre du CEO retenu : **mission, budget et sa période, liste des providers IA autorisés** (chaque provider/modèle a un coût que le CEO connaît).
 4. Le CEO prend ses fonctions et met en place ses départements avec vous.
+
+Le cabinet reste disponible **à la demande** après la fondation : si un CEO ne convient plus, on peut le remercier et en recruter un autre (l'entreprise, les mémoires et les tâches survivent au changement de direction).
 
 L'app peut héberger plusieurs workspaces, chacun avec son entreprise, son budget et sa comptabilité propres.
 
@@ -107,12 +109,11 @@ Vous (propriétaire) ── todo-list + inbox
 
 La tâche est l'objet central du système : décomposition, assignation, avancement, budget, questions/réponses, livrables, coûts imputés.
 
-### 3.6 Budgets (garde-fous durs)
+### 3.6 Budgets : le CEO gère ses finances (comptabilité d'engagement)
 
-Deux niveaux :
-
-- **Budget mensuel du workspace** : l'enveloppe du CEO (salaires = consommation API de toute l'entreprise).
-- **Budget par tâche** : chaque tâche a le sien. **Épuisé → le travail se met en pause proprement et une alerte part vers l'utilisateur**, qui décide : rallonge, réduction du scope, ou abandon.
+- **Budget du workspace** : un montant initial + une **période paramétrable** (jour, semaine, mois, année). Le CEO connaît en permanence trois chiffres : l'enveloppe, le **consommé**, et l'**engagé** (budgétisé pour les tâches en cours).
+- **Budget par tâche, alloué par le CEO** : quand il prend une tâche, il l'évalue (simple ou complexe, quel % du projet/budget elle représente) et lui **alloue une enveloppe** prélevée sur le disponible. Tâche terminée sous le budget → **le delta retourne au budget du workspace**.
+- **Épuisement du budget d'une tâche** → le travail se met **en pause proprement + alerte à l'utilisateur**, qui décide : rallonge, réduction du scope, ou abandon.
 
 Le CEO arbitre librement *sous* les plafonds ; le démon **coupe** *aux* plafonds. L'autonomie a une enveloppe, jamais un chèque en blanc.
 
@@ -122,7 +123,7 @@ Le CEO arbitre librement *sous* les plafonds ; le démon **coupe** *aux* plafond
 - **Chaque matin** (paramétrable) : le CEO **vient au rapport** auprès de l'utilisateur — avancement, décisions, dépenses, blocages.
 - **À la demande** : tout ce qui requiert l'utilisateur (question filtrée, permission, budget, validation) part dans l'inbox sans attendre le rituel.
 
-**Arbitrage coût/utilité du rituel horaire (proposition retenue, à valider)** — le rituel a un coût en tokens, mais c'est aussi le filet de sécurité qui détecte un agent planté ou une tâche silencieusement échouée. Solution à deux étages :
+**Arbitrage coût/utilité du rituel horaire (validé)** — le rituel a un coût en tokens, mais c'est aussi le filet de sécurité qui détecte un agent planté ou une tâche silencieusement échouée. Solution à deux étages :
 
 1. **Ronde technique du démon (gratuite, du code, pas du LLM)** : à chaque tick, le démon vérifie les signes vitaux — workers vivants, sous-tâches sans activité depuis X temps, statuts incohérents, crashs. Rien d'anormal et rien d'actif → personne n'est réveillé, coût zéro.
 2. **Ronde managériale (payante, LLM)** : déclenchée seulement s'il y a du travail en cours ou une anomalie détectée par la ronde technique. C'est là que la hiérarchie se réveille en cascade et produit du reporting qualitatif.
@@ -151,7 +152,7 @@ On garde ainsi le filet de sécurité sans payer des tournées de bureaux vides.
 
 ### 5.1 Stack actée : Tauri v2 + démon Node + workers éphémères
 
-**Tauri v2** pour la coquille UI (contrainte : app 24/7, empreinte mémoire minimale). Cœur agentique en **Node/TypeScript** (sidecar) car l'écosystème (Agent SDK, MCP, Playwright) y vit. **Couche multi-provider dès la V1** avec table de tarifs par modèle (le CEO raisonne sur les coûts réels).
+**Tauri v2** pour la coquille UI (contrainte : app 24/7, empreinte mémoire minimale). Cœur agentique en **Node/TypeScript** (sidecar) car l'écosystème (Agent SDK, MCP, Playwright) y vit. **Couche multi-provider dès la V1** avec table de tarifs par modèle (le CEO raisonne sur les coûts réels). La table est **embarquée dans l'app** (actualisée via les releases) mais **overridable dans les réglages** — l'utilisateur peut même y déclarer un **provider personnalisé** (clé API + tarifs), par exemple un endpoint local ou d'entreprise.
 
 ### 5.2 La stratégie mémoire (contrainte n°1 : tourner 24/7 sans dériver)
 
@@ -222,7 +223,7 @@ Objets de première classe : **Workspace, Employé (contrat, caractère, modèle
 Inclus :
 1. **Fondation d'un workspace** : conversation avec le cabinet de recrutement, profils de CEO avec jauges de caractère, cadrage (mission, budget mensuel, providers), mise en place des départements avec le CEO.
 2. **CEO + 2 départements** avec HEAD ; le CEO embauche des spécialistes CDD dans son budget (choix du modèle selon coût réel).
-3. **Todo-list** : tâches avec budget propre, décomposition par le CEO, arbre de sous-tâches avec statuts ; cycle de validation à double étage (manager sur les sous-tâches, utilisateur sur la tâche principale).
+3. **Todo-list** : tâches budgétisées par le CEO (comptabilité consommé/engagé, restitution du delta), décomposition, arbre de sous-tâches avec statuts ; cycle de validation à double étage (manager sur les sous-tâches, utilisateur sur la tâche principale).
 4. **Rituels** : ronde technique gratuite du démon + ronde managériale en cascade quand il y a de l'activité ; rapport matinal du CEO ; fréquences paramétrables.
 5. Outils hôte : fichiers (dossiers autorisés), shell (avec approbation), recherche web.
 6. **Inbox** : questions filtrées par les HEADs, demandes du CEO (permission, rallonge de budget), livrables à valider, alertes de pause budgétaire.
@@ -256,25 +257,22 @@ Exclus de la V1 : multi-workspaces simultanés, marketplace, mobile, automatisat
 | 13 | Transparence | Auditabilité totale : conversations ET raisonnements internes |
 | 14 | Multi-provider | Pilier V1 : chaque employé = un modèle choisi à l'embauche selon coût/compétence |
 | 15 | Validation des tâches | Double étage : manager confirme les sous-tâches ; CEO passe la principale à "Terminé" + message ; l'utilisateur vérifie, archive ou rouvre |
-| 16 | Budget par tâche | Chaque tâche a son budget ; épuisé → **pause propre + alerte utilisateur** |
+| 16 | Budget par tâche | **Alloué par le CEO** (évaluation simple/complexe, % du projet) ; delta restitué au workspace en fin de tâche ; épuisé → **pause propre + alerte utilisateur** |
 | 17 | Coûts | Le CEO voit les **coûts réels en tokens** ; le système déduit le coût $ par agent et par tâche |
 | 18 | Filtrage des questions | Les HEADs filtrent ; seules les questions sans réponse hiérarchique atteignent l'utilisateur |
 | 19 | Onboarding | **Cabinet de recrutement** en roleplay : interview projet, profils de CEO, **jauges de caractère** façon jeu vidéo |
-| 20 | Rituel & coût (proposition) | Ronde technique gratuite du démon à chaque tick ; ronde managériale LLM seulement si activité ou anomalie |
+| 20 | Rituel & coût | **Validé** : ronde technique gratuite du démon à chaque tick ; ronde managériale LLM seulement si activité ou anomalie |
+| 21 | Budget workspace | Montant initial + **période paramétrable** (jour/semaine/mois/année) ; comptabilité consommé / engagé / disponible |
+| 22 | Jauges de caractère | Remise en question, aversion au risque, rigueur, concision des rapports, formalisme, gestion budgétaire… — **liste extensible** |
+| 23 | Cabinet de recrutement | Disponible **à la fondation et à la demande** (remplacement du CEO possible, l'entreprise survit) |
+| 24 | Tarifs providers | **Embarqués** (mis à jour via les releases), **overridables** dans les réglages ; **providers personnalisés** déclarables (clé API + tarifs) |
+| 25 | Nom | **KoaTeam**, définitif |
 
-## 10. Dernières questions avant de passer à la suite
+## 10. Vision verrouillée — prochaines étapes
 
-La vision est presque complète. Restent des points de détail et la préparation de la phase suivante :
+Le brainstorming est terminé : 25 décisions actées, plus de question ouverte bloquante. La suite, dans l'ordre proposé :
 
-1. **Ronde à deux étages (décision 20)** : la proposition vous convient-elle en l'état ?
-2. **Budget d'une tâche** : fixé par vous à la création, ou proposé par le CEO (il estime le coût, vous validez) ? La seconde option est plus "vraie entreprise" (un devis).
-3. **Les jauges de caractère** : lesquelles ? (proposition : remise en question ↔ docilité, prudence ↔ audace, rigueur ↔ souplesse, concision ↔ détail dans les rapports, formel ↔ familier)
-4. **Le cabinet de recrutement** : uniquement à la fondation, ou réutilisable ensuite (remplacer un CEO qui ne convient pas — peut-on *licencier* le CEO ?) ?
-5. **Table des tarifs providers** : embarquée dans l'app et mise à jour avec les releases, ou éditable par l'utilisateur ?
-6. **Le nom** : "KoaTeam" est-il définitif ?
-
-### Prochaines étapes proposées (dès que la vision est verrouillée)
-
-1. **Spec produit V1** : consolider ce document en spécification (écrans, entités, flux) — la référence pour le développement.
+1. **Spec produit V1** : consolider ce document en spécification de référence — écrans, entités (Workspace, Employé, Tâche, Conversation, Écriture comptable…), flux complets (fondation, prise de tâche, rituels, validation, fin de mission).
 2. **Wireframes des 5 écrans clés** : todo-list/arbre de tâches, organigramme, inbox, fiche employé, vue audit.
-3. **Spike technique** : prototype minimal Tauri v2 + sidecar Node + un worker éphémère qui exécute une boucle agentique — pour dérisquer l'empaquetage multi-plateforme et valider la stratégie mémoire avant tout le reste.
+3. **Spike technique (en parallèle de 1–2)** : prototype minimal Tauri v2 + sidecar Node + un worker éphémère exécutant une vraie boucle agentique — pour dérisquer l'empaquetage multi-plateforme du sidecar et valider la stratégie mémoire (< 200 Mo au repos) avant d'écrire le produit.
+4. Puis : squelette du repo (monorepo UI/démon/workers), CI 3 OS, et développement du MVP décrit en §8.
