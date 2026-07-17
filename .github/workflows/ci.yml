@@ -14,11 +14,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build & test endurance (10 missions, workers éphémères)
+      - name: Build, suite QA & endurance
         working-directory: daemon
         run: |
           npm ci
           npm run build
+          node scripts/qa.mjs
           node scripts/endurance.mjs 10
 
   # Build desktop complet : UI + démon sidecar + coquille Tauri, sur les 3 OS

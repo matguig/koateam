@@ -57,18 +57,20 @@ export class InterventionRunner {
 
   resumeTask(taskId: string): void {
     const subs = this.store.subtasksOf(taskId)
-    if (subs.length === 0) {
-      // La pause a interrompu la planification avant toute délégation :
-      // on relance le CEO depuis le début.
+    // 'in_progress' compte comme à reprendre : après un crash, le worker est
+    // mort mais la sous-tâche est restée marquée en cours.
+    const pending = subs.filter((s) => ['todo', 'in_progress', 'paused_budget'].includes(s.status))
+    if (pending.length === 0) {
+      // Rien à reprendre : soit la planification avait été interrompue avant
+      // toute délégation, soit l'utilisateur rouvre une tâche entièrement
+      // confirmée (« pas fini ») → le CEO re-planifie des sous-tâches.
       this.submitTask(taskId)
       return
     }
     this.store.updateTask(taskId, { status: 'in_progress' })
-    for (const s of subs) {
-      if (s.status === 'paused_budget' || s.status === 'todo') {
-        this.store.updateTask(s.id, { status: 'todo' })
-        if (s.assignee_id) this.enqueue({ kind: 'execute', taskId: s.id, employeeId: s.assignee_id })
-      }
+    for (const s of pending) {
+      this.store.updateTask(s.id, { status: 'todo' })
+      if (s.assignee_id) this.enqueue({ kind: 'execute', taskId: s.id, employeeId: s.assignee_id })
     }
   }
 
@@ -262,7 +264,11 @@ export class InterventionRunner {
       }
       this.store.updateTask(mainTask.id, { status: 'in_progress', complexity_note: report })
       for (const sub of this.store.subtasksOf(mainTask.id)) {
-        if (sub.assignee_id) this.enqueue({ kind: 'execute', taskId: sub.id, employeeId: sub.assignee_id })
+        // ne relancer que le travail non confirmé (une re-planification après
+        // réouverture ne doit pas ré-exécuter les sous-tâches déjà validées)
+        if (sub.status !== 'done_confirmed' && sub.assignee_id) {
+          this.enqueue({ kind: 'execute', taskId: sub.id, employeeId: sub.assignee_id })
+        }
       }
       return
     }

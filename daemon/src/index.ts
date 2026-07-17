@@ -49,6 +49,18 @@ function main(): void {
   })
   rituals.start()
 
+  // Récupération au démarrage : un kill/crash en pleine tâche ne doit rien
+  // perdre — les tâches interrompues repartent (l'état est 100 % SQLite).
+  const wsBoot = store.getWorkspace()
+  if (wsBoot) {
+    for (const t of store.listTasks(wsBoot.id).filter((t) => !t.parent_id)) {
+      if (['planning', 'in_progress'].includes(t.status)) {
+        console.log(`[recovery] reprise de « ${t.title} » (interrompue en ${t.status})`)
+        runner.resumeTask(t.id)
+      }
+    }
+  }
+
   // Ronde technique du démon (SPEC-V1 §3.7) : du code, pas du LLM, coût zéro.
   setInterval(() => {
     const rss = process.memoryUsage().rss

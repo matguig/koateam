@@ -94,10 +94,12 @@ export class Foundation {
     const s = this.session
     const departments = input.departments?.length ? input.departments : ['Marketing', 'Dev']
 
+    const budget = input.budget ?? s.budget
+    if (!Number.isFinite(budget) || budget <= 0) throw new Error('budget invalide')
     const ws = this.store.createWorkspace({
-      name: input.name ?? s.name ?? 'Nouveau projet',
-      mission: input.mission ?? s.mission,
-      budget_amount: input.budget ?? s.budget,
+      name: (input.name ?? s.name).trim() || 'Nouvelle entreprise',
+      mission: (input.mission ?? s.mission).trim() || 'Mission à préciser avec le CEO.',
+      budget_amount: budget,
     })
 
     const ceo = this.store.hire({

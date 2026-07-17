@@ -93,19 +93,30 @@ export function EmployeeDrawer({ empId, onClose }: { empId: string; onClose: () 
           ))}
         </div>
 
-        <SectionLabel>Historique d’interventions</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {HISTORY.map((h) => (
-            <div key={h.when} style={{
-              display: 'flex', gap: 10, padding: '7px 0', borderTop: '1px solid var(--border)',
-              fontSize: 12, alignItems: 'baseline',
-            }}>
-              <span style={{ color: 'var(--text3)', width: 66, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{h.when}</span>
-              <span style={{ flex: 1, color: 'var(--text2)' }}>{h.what}</span>
-              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{fmt(h.cost)}</span>
+        {data.live ? (
+          <>
+            <SectionLabel>Historique d’interventions</SectionLabel>
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+              Consultable dans l’onglet Audit (traces de raisonnement filtrées par employé — vue dédiée en M3).
             </div>
-          ))}
-        </div>
+          </>
+        ) : (
+          <>
+            <SectionLabel>Historique d’interventions</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {HISTORY.map((h) => (
+                <div key={h.when} style={{
+                  display: 'flex', gap: 10, padding: '7px 0', borderTop: '1px solid var(--border)',
+                  fontSize: 12, alignItems: 'baseline',
+                }}>
+                  <span style={{ color: 'var(--text3)', width: 66, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{h.when}</span>
+                  <span style={{ flex: 1, color: 'var(--text2)' }}>{h.what}</span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{fmt(h.cost)}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </>
   )

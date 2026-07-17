@@ -16,7 +16,12 @@ export function TasksScreen() {
 
   const submit = async () => {
     if (!title.trim()) return
-    await data.actions.createTask({ title: title.trim(), description: desc.trim(), budget: Number(budget) || 0.05 })
+    // accepte la virgule française : « 0,10 » → 0.10
+    const parsed = Number(budget.replace(',', '.'))
+    await data.actions.createTask({
+      title: title.trim(), description: desc.trim(),
+      budget: Number.isFinite(parsed) && parsed > 0 ? parsed : 0.05,
+    })
     setTitle(''); setDesc(''); setCreating(false)
   }
 

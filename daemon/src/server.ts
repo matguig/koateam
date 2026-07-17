@@ -114,6 +114,7 @@ export function createApi(ctx: ApiContext) {
         return json(res, 200, foundation.message(String(b.text ?? '')))
       }
       if (req.method === 'POST' && path === '/foundation/sign') {
+        if (store.getWorkspace()) return json(res, 409, { error: 'un workspace existe déjà (multi-workspaces : V2)' })
         const b = await readBody(req)
         const ws = foundation.sign({
           ceoIndex: Number(b.ceoIndex ?? 0),
@@ -123,6 +124,7 @@ export function createApi(ctx: ApiContext) {
           budget: b.budget !== undefined ? Number(b.budget) : undefined,
           departments: Array.isArray(b.departments) ? (b.departments as string[]) : undefined,
         })
+        broadcast()
         return json(res, 200, { workspaceId: ws.id })
       }
 
@@ -137,15 +139,23 @@ export function createApi(ctx: ApiContext) {
           applyAnthropicKey(ctx.providers, key || null)
         }
         if (b.ritual_tick_minutes !== undefined) {
-          store.settingSet('ritual_tick_minutes', String(Math.max(1, Number(b.ritual_tick_minutes))))
+          const tick = Number(b.ritual_tick_minutes)
+          // NaN stocké = ronde managériale morte : on ignore les valeurs invalides
+          if (Number.isFinite(tick) && tick >= 1) {
+            store.settingSet('ritual_tick_minutes', String(Math.round(tick)))
+          }
         }
         if (typeof b.morning_report_time === 'string' && /^\d{2}:\d{2}$/.test(b.morning_report_time)) {
           store.settingSet('morning_report_time', b.morning_report_time)
         }
         if (b.budget_amount !== undefined) {
+          const budget = Number(b.budget_amount)
           const ws = store.getWorkspace()
-          if (ws) store.updateWorkspace(ws.id, { budget_amount: Number(b.budget_amount) })
+          if (ws && Number.isFinite(budget) && budget > 0) {
+            store.updateWorkspace(ws.id, { budget_amount: budget })
+          }
         }
+        broadcast()
         return json(res, 200, settingsView())
       }
 
@@ -153,17 +163,21 @@ export function createApi(ctx: ApiContext) {
         const b = await readBody(req)
         const ws = store.getWorkspace()
         if (!ws) return json(res, 409, { error: 'aucun workspace — fondez d’abord l’entreprise' })
+        const title = String(b.title ?? '').trim().slice(0, 200)
+        if (!title) return json(res, 400, { error: 'titre requis' })
         const budget = Number(b.budget ?? 0.05)
+        if (!Number.isFinite(budget) || budget <= 0) return json(res, 400, { error: 'budget invalide (doit être > 0)' })
         const task = store.createTask({
           workspace_id: ws.id,
-          title: String(b.title ?? 'Sans titre'),
-          description: String(b.description ?? ''),
+          title,
+          description: String(b.description ?? '').slice(0, 4000),
           objectives: (b.objectives as [string, boolean][]) ?? [],
           status: 'open',
           budget_allocated: budget,
         })
         store.ledgerAppend({ workspace_id: ws.id, type: 'allocation', amount: budget, task_id: task.id })
         runner.submitTask(task.id)
+        broadcast()
         return json(res, 200, { id: task.id })
       }
 
@@ -175,6 +189,10 @@ export function createApi(ctx: ApiContext) {
         if (!task || !ws) return json(res, 404, { error: 'tâche inconnue' })
 
         if (action === 'archive') {
+          // Garde anti-double archivage : une seule restitution possible
+          if (!['done', 'paused_budget', 'open'].includes(task.status)) {
+            return json(res, 409, { error: `archivage impossible depuis l'état ${task.status}` })
+          }
           const remaining = task.budget_allocated - store.spentOnTask(id)
           if (remaining > 0) {
             store.ledgerAppend({ workspace_id: ws.id, type: 'release', amount: remaining, task_id: id })
@@ -182,21 +200,29 @@ export function createApi(ctx: ApiContext) {
           store.updateTask(id, { status: 'archived' })
         }
         if (action === 'reopen') {
+          if (!['done', 'paused_budget'].includes(task.status)) {
+            return json(res, 409, { error: `réouverture impossible depuis l'état ${task.status}` })
+          }
           runner.resumeTask(id)
         }
         if (action === 'topup') {
           const b = await readBody(req)
           const amount = Number(b.amount ?? 0.05)
+          if (!Number.isFinite(amount) || amount <= 0) {
+            return json(res, 400, { error: 'rallonge invalide (doit être > 0)' })
+          }
           store.ledgerAppend({ workspace_id: ws.id, type: 'topup', amount, task_id: id })
           store.updateTask(id, { budget_allocated: task.budget_allocated + amount })
           runner.resumeTask(id)
         }
+        broadcast()
         return json(res, 200, { ok: true })
       }
 
       const inboxAction = path.match(/^\/inbox\/([\w-]+)\/resolve$/)
       if (req.method === 'POST' && inboxAction) {
         store.inboxResolve(inboxAction[1])
+        broadcast()
         return json(res, 200, { ok: true })
       }
 
