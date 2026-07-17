@@ -9,7 +9,7 @@
 
 **KoaTeam est une application desktop qui transforme chacun de vos projets en une entreprise virtuelle autonome, travaillant directement sur votre machine, 24h/24.**
 
-Pour chaque projet, vous créez un **workspace** et vous embauchez un **CEO** : vous lui donnez une mission, un budget mensuel et la liste des providers IA qu'il a le droit d'utiliser. Ensuite, vous ne managez plus des agents — vous remplissez une **todo-list**. Le CEO prend les tâches, les décompose, crée les départements nécessaires, embauche des spécialistes en arbitrant coût vs budget, et l'entreprise avance. Vous suivez l'avancement, répondez aux questions, validez ce qui doit l'être — et tout, absolument tout, est auditable.
+Pour chaque projet, vous créez un **workspace** : un cabinet de recrutement virtuel vous interroge sur le projet et vous propose des profils de **CEO** — dont vous réglez le caractère à la jauge, comme dans un jeu vidéo. Vous fixez sa mission, son budget mensuel, les providers IA autorisés. Ensuite, vous ne managez plus des agents — vous remplissez une **todo-list**. Le CEO prend les tâches, les décompose, crée les départements nécessaires, embauche des spécialistes en arbitrant coût vs budget, et l'entreprise avance. Vous suivez, répondez aux questions filtrées par la hiérarchie, validez les livrables — et tout, absolument tout, est auditable.
 
 ### Pourquoi desktop et pas web ?
 
@@ -39,21 +39,20 @@ Outil **personnel** d'abord ; si un intérêt émerge, cible naturelle = **trava
 
 **Paperclip organise des agents, Bloome discute avec des agents, KoaTeam fait tourner des entreprises d'agents sur votre ordinateur.**
 
-Différences assumées avec Paperclip : chez eux on "hire a virtual agent" et on discute ; chez nous on **fonde une entreprise par projet**, c'est le CEO qui embauche, et l'interface principale est une **todo-list**, pas un chat.
+Différences assumées : chez eux on "hire a virtual agent" et on discute ; chez nous on **fonde une entreprise par projet**, c'est le CEO qui embauche, et l'interface principale est une **todo-list**, pas un chat.
 
 ---
 
 ## 3. Le modèle : une entreprise par projet
 
-### 3.1 Le Workspace
+### 3.1 La fondation d'un workspace : le cabinet de recrutement
 
-Un projet = un workspace = une entreprise. À la création :
+Créer un workspace n'est pas un formulaire — c'est un **roleplay avec un cabinet de recrutement** :
 
-1. Vous **embauchez un CEO** en définissant :
-   - sa **mission** (l'objectif global du projet) ;
-   - son **budget mensuel** ;
-   - la **liste des providers IA autorisés** (Anthropic, OpenAI, modèles locaux…) — chaque provider/modèle a un coût connu du CEO.
-2. Une **discussion de fondation** avec le nouveau CEO fixe les départements à créer (paramétrable par workspace — un projet dev solo n'a pas besoin d'un département Juridique).
+1. Le cabinet vous **interroge sur le projet** : nature, objectifs, contraintes, ton souhaité, dossiers de la machine concernés… Cette conversation configure tout le workspace.
+2. Il vous **propose plusieurs profils de CEO**, différenciés par leur caractère. Vous affinez avec des **jauges de traits** (façon création de personnage de jeu vidéo) : remise en question de vos demandes ↔ exécution docile, strict ↔ souple, prudent ↔ audacieux, etc.
+3. Vous fixez le cadre du CEO retenu : **mission, budget mensuel, liste des providers IA autorisés** (chaque provider/modèle a un coût que le CEO connaît).
+4. Le CEO prend ses fonctions et met en place ses départements avec vous.
 
 L'app peut héberger plusieurs workspaces, chacun avec son entreprise, son budget et sa comptabilité propres.
 
@@ -61,16 +60,17 @@ L'app peut héberger plusieurs workspaces, chacun avec son entreprise, son budge
 
 Décision structurante : **c'est le CEO qui recrute, pas l'utilisateur.**
 
-- Le CEO connaît le tarif de chaque provider/modèle autorisé et gère **coût vs budget** : il embauche un spécialiste sur un petit modèle économique pour une tâche mécanique, réserve les gros modèles aux postes à forte responsabilité (lui-même, les HEADs, les tâches complexes).
-- Créer un département, embaucher un HEAD, recruter un spécialiste pour une campagne : ce sont **ses** décisions de gestion, dans l'enveloppe budgétaire.
-- L'utilisateur garde les leviers macro : mission, budget, providers autorisés, permissions sensibles.
-- Conséquence technique : l'abstraction **multi-provider** n'est plus une option lointaine — c'est un pilier du concept (chaque employé = un modèle, choisi à l'embauche selon le rapport compétence/coût).
+- Le CEO voit le **coût réel des tokens** de chaque provider/modèle autorisé, et arbitre coût vs budget : petit modèle économique pour une tâche mécanique, gros modèle pour les postes à forte responsabilité.
+- Créer un département, embaucher un HEAD, recruter un spécialiste : ce sont **ses** décisions de gestion, dans l'enveloppe budgétaire.
+- Le **système tient la comptabilité** : chaque appel API est déduit en $ et imputé à l'agent et à la tâche concernés.
+- L'utilisateur garde les leviers macro : mission, budgets, providers autorisés, permissions sensibles.
+- Conséquence technique : l'abstraction **multi-provider** est un pilier du concept (chaque employé = un modèle, choisi à l'embauche selon le rapport compétence/coût).
 
 ### 3.3 Départements et hiérarchie
 
 ```
 Vous (propriétaire) ── todo-list + inbox
-└── CEO (mission, budget, providers)
+└── CEO (mission, budget, providers — caractère réglé aux jauges)
     ├── HEAD of Marketing
     │   └── Spécialiste — Campagne XYZ          (CDD)
     │       └── Spécialiste — Google Ads XYZ    (CDD)
@@ -80,43 +80,58 @@ Vous (propriétaire) ── todo-list + inbox
 
 - **Chaque agent rapporte à son supérieur direct** ; communication transverse autorisée, mais responsabilité et reporting suivent la ligne hiérarchique.
 - **Scope volontairement très étroit** par agent : la profondeur de la hiérarchie remplace la polyvalence. C'est aussi une bonne pratique LLM (prompt focalisé, contexte court, meilleurs résultats).
-- Les managers (CEO, HEADs, chefs de campagne) **décomposent, délèguent, agrègent et contrôlent la qualité** avant de faire remonter.
-- Départements types : Marketing, Client Success, Comptabilité, Juridique, Dev… — choisis à la fondation, extensibles par le CEO ensuite.
+- Les managers **décomposent, délèguent, agrègent et contrôlent la qualité** avant de faire remonter.
+- **Les HEADs filtrent** : une question d'un spécialiste ne remonte à l'utilisateur que si la hiérarchie ne peut pas y répondre elle-même. L'utilisateur ne doit jamais être spammé.
 
 ### 3.4 L'Employé
 
-- **Identité** : prénom, titre, avatar, **personnalité** (le roleplay aide à l'incarnation du rôle, donc à l'efficacité).
-- **Contrat** : les spécialistes sont des **CDD / freelances de mission**. Quand la hiérarchie décide que la mission est terminée : **rapport de mission**, puis **archivage** — réveillable au besoin, avec sa mémoire intacte.
-- **Fiche de poste** : prompt système + scope étroit + outils autorisés + garde-fous + **modèle IA attribué** (choisi par le recruteur selon coût/compétence).
-- **Mémoire** : persistante ; archivée avec l'employé en fin de mission.
+- **Identité** : prénom, titre, avatar, **personnalité**. Le caractère du CEO est réglé aux jauges à l'embauche ; le CEO définit celui de ses recrues (adapté au poste).
+- **Contrat** : les spécialistes sont des **CDD / freelances de mission**. Mission terminée (décision de la hiérarchie) → **rapport de mission**, puis **archivage réveillable**, mémoire intacte.
+- **Fiche de poste** : prompt système + scope étroit + outils autorisés + garde-fous + **modèle IA attribué**.
+- **Mémoire** : persistante ; archivée avec l'employé.
 - **Autonomie** : paramétrable par agent.
-- **Coût** : chaque appel est comptabilisé ; salaire = consommation API, imputée au budget du workspace.
+- **Coût** : chaque appel comptabilisé en $, imputé à l'agent et à la tâche.
 
 ### 3.5 Le flux de travail : la todo-list
 
 **L'interface principale n'est pas un chat, c'est une todo-list.**
 
-1. Vous créez une **tâche** : titre, description, objectifs (critères de réussite), éventuellement échéance et priorité.
-2. Le **CEO prend la tâche** : il la découpe en sous-tâches, les assigne aux bons départements, **crée un département ou embauche si besoin**.
-3. Vous voyez la tâche principale avancer à travers **l'arbre de ses sous-tâches** et leur statut (à faire / en cours / bloquée / en revue / terminée).
-4. Les agents peuvent **poser des questions sur la tâche** — elles remontent dans votre inbox, vous répondez, le travail reprend.
-5. Le chat existe mais n'est **pas la voie privilégiée** :
-   - avec le **CEO** : mettre à jour mission, objectifs, budget ; répondre à ses demandes (action, permission) ;
-   - avec un **agent ou un département** en direct : possible (le patron qui court-circuite), mais jamais automatique.
+1. Vous créez une **tâche** : titre, description, objectifs (critères de réussite), **budget propre**, éventuellement échéance et priorité.
+2. Le **CEO prend la tâche** : découpage en sous-tâches, assignation aux départements, **création de département ou embauche si besoin**.
+3. Vous suivez l'**arbre des sous-tâches** et leurs statuts (à faire / en cours / bloquée / en revue / terminée).
+4. **Cycle de validation à double étage** :
+   - *Sous-tâches* : l'agent assigné change librement le statut de sa tâche, **sous la supervision de son manager** — qui confirme le passage à "terminé", relance, ou recrée d'autres sous-tâches si le résultat ne suffit pas.
+   - *Tâche principale* : quand tout est terminé, le **CEO la passe à "Terminé" et vous envoie un message** ("on a fini XYZ"). Vous **vérifiez** le livrable : archivage si c'est bon, **réouverture** si vous estimez que ce n'est pas fini.
+5. Les **questions des agents sur la tâche** remontent la hiérarchie ; seules celles auxquelles la hiérarchie ne peut pas répondre atteignent votre inbox.
+6. Le chat existe mais n'est **pas la voie privilégiée** : avec le CEO pour la stratégie (mission, objectifs, budget, demandes) ; en direct avec un agent/département si vous voulez court-circuiter — possible, jamais automatique.
 
-La tâche est donc l'objet central du système : elle porte la décomposition, l'assignation, l'avancement, les questions/réponses, les livrables et les coûts imputés.
+La tâche est l'objet central du système : décomposition, assignation, avancement, budget, questions/réponses, livrables, coûts imputés.
 
-### 3.6 Les rituels (le battement de cœur de l'entreprise)
+### 3.6 Budgets (garde-fous durs)
 
-- **Toutes les heures** (paramétrable) : le CEO **réveille chaque HEAD** pour monitorer l'avancement ; chaque HEAD **interroge ses équipes** pour un reporting réel — pas deviné — et le consolide pour le CEO.
-- **Chaque matin** (paramétrable) : le CEO **vient au rapport** auprès de l'utilisateur — synthèse de l'avancement, décisions prises, dépenses, points de blocage.
-- **À la demande** : dès que quelque chose requiert l'utilisateur (question, permission, budget, validation), ça part dans l'inbox sans attendre le rituel.
+Deux niveaux :
 
-Ces rituels s'emboîtent parfaitement avec l'architecture "employés dormants" : le scheduler du démon réveille le CEO, qui réveille les HEADs, qui réveillent leurs équipes — puis tout le monde se rendort.
+- **Budget mensuel du workspace** : l'enveloppe du CEO (salaires = consommation API de toute l'entreprise).
+- **Budget par tâche** : chaque tâche a le sien. **Épuisé → le travail se met en pause proprement et une alerte part vers l'utilisateur**, qui décide : rallonge, réduction du scope, ou abandon.
 
-### 3.7 Auditabilité totale
+Le CEO arbitre librement *sous* les plafonds ; le démon **coupe** *aux* plafonds. L'autonomie a une enveloppe, jamais un chèque en blanc.
 
-**Tout est ouvert** : chaque conversation inter-agents est consultable, et le **raisonnement interne de chaque agent** (sa chaîne de réflexion, ses décisions d'outils) est enregistré et lisible. L'utilisateur ne surveille pas en continu — mais il peut toujours ouvrir le capot, sur n'importe quel échange, à n'importe quel moment.
+### 3.7 Les rituels (le battement de cœur de l'entreprise)
+
+- **Toutes les heures** (paramétrable) : le CEO **réveille chaque HEAD** ; chaque HEAD **interroge ses équipes** pour un reporting réel — pas deviné — et le consolide pour le CEO.
+- **Chaque matin** (paramétrable) : le CEO **vient au rapport** auprès de l'utilisateur — avancement, décisions, dépenses, blocages.
+- **À la demande** : tout ce qui requiert l'utilisateur (question filtrée, permission, budget, validation) part dans l'inbox sans attendre le rituel.
+
+**Arbitrage coût/utilité du rituel horaire (proposition retenue, à valider)** — le rituel a un coût en tokens, mais c'est aussi le filet de sécurité qui détecte un agent planté ou une tâche silencieusement échouée. Solution à deux étages :
+
+1. **Ronde technique du démon (gratuite, du code, pas du LLM)** : à chaque tick, le démon vérifie les signes vitaux — workers vivants, sous-tâches sans activité depuis X temps, statuts incohérents, crashs. Rien d'anormal et rien d'actif → personne n'est réveillé, coût zéro.
+2. **Ronde managériale (payante, LLM)** : déclenchée seulement s'il y a du travail en cours ou une anomalie détectée par la ronde technique. C'est là que la hiérarchie se réveille en cascade et produit du reporting qualitatif.
+
+On garde ainsi le filet de sécurité sans payer des tournées de bureaux vides.
+
+### 3.8 Auditabilité totale
+
+**Tout est ouvert** : chaque conversation inter-agents est consultable, et le **raisonnement interne de chaque agent** (chaîne de réflexion, décisions d'outils) est enregistré et lisible. Vous ne surveillez pas en continu — mais vous pouvez toujours ouvrir le capot, sur n'importe quel échange, à n'importe quel moment.
 
 ---
 
@@ -136,12 +151,12 @@ Ces rituels s'emboîtent parfaitement avec l'architecture "employés dormants" :
 
 ### 5.1 Stack actée : Tauri v2 + démon Node + workers éphémères
 
-**Tauri v2** pour la coquille UI (contrainte : app 24/7, empreinte mémoire minimale). Cœur agentique en **Node/TypeScript** (sidecar) car l'écosystème (Agent SDK, MCP, Playwright) y vit. **Couche multi-provider dès la V1** (voir §3.2) : interface commune au-dessus d'Anthropic/OpenAI/locaux, avec table de tarifs par modèle.
+**Tauri v2** pour la coquille UI (contrainte : app 24/7, empreinte mémoire minimale). Cœur agentique en **Node/TypeScript** (sidecar) car l'écosystème (Agent SDK, MCP, Playwright) y vit. **Couche multi-provider dès la V1** avec table de tarifs par modèle (le CEO raisonne sur les coûts réels).
 
 ### 5.2 La stratégie mémoire (contrainte n°1 : tourner 24/7 sans dériver)
 
-1. **Employés éphémères** : au repos un agent "dort" — état (fiche, mémoire, tâches) dans SQLite, RAM ≈ 0. Une intervention = un **processus worker dédié, tué à la fin**. Une fuite ne peut pas s'accumuler.
-2. **Démon minimal 24/7** : scheduler (rituels), file de tâches, inbox, budgets, watchdog. **Watchdog mémoire** : au-delà d'un seuil (ex. 300 Mo), redémarrage propre automatique — invisible, l'état étant sur disque.
+1. **Employés éphémères** : au repos un agent "dort" — état dans SQLite, RAM ≈ 0. Une intervention = un **processus worker dédié, tué à la fin**. Une fuite ne peut pas s'accumuler.
+2. **Démon minimal 24/7** : scheduler des rituels, ronde technique, file de tâches, inbox, comptabilité/budgets, watchdog. **Watchdog mémoire** : au-delà d'un seuil (ex. 300 Mo), redémarrage propre automatique — invisible, l'état étant sur disque.
 3. **UI jetable** : fenêtre fermée = webview déchargée ; ne restent que l'icône barre de menu et le démon.
 4. **Playwright à la demande** : lancé par le worker, fermé avec lui.
 
@@ -154,12 +169,12 @@ Ces rituels s'emboîtent parfaitement avec l'architecture "employés dormants" :
 │ UI — Tauri v2 (webview) + React/TS             │
 │ todo-list & arbre de tâches · organigramme ·   │
 │ inbox · audit (conversations + raisonnements) ·│
-│ budgets · réglages                             │
+│ budgets & comptabilité · réglages              │
 ├────────────────────────────────────────────────┤
 │ Démon Node (sidecar, 24/7, minimal)            │
-│ scheduler des rituels · file de tâches ·       │
-│ inbox · comptabilité/budgets · permissions ·   │
-│ watchdog mémoire                               │
+│ scheduler des rituels · ronde technique ·      │
+│ file de tâches · inbox · comptabilité/budgets ·│
+│ permissions · watchdog mémoire                 │
 ├────────────────────────────────────────────────┤
 │ Workers éphémères (1 processus / intervention) │
 │ boucle agentique (multi-provider) · outils     │
@@ -171,7 +186,7 @@ Ces rituels s'emboîtent parfaitement avec l'architecture "employés dormants" :
 └────────────────────────────────────────────────┘
 ```
 
-Objets de première classe en base : **Workspace, Employé (contrat, modèle, permissions, mémoire), Tâche (arbre, statuts, Q/R, livrables, coûts), Conversation, Trace de raisonnement, Écriture comptable.**
+Objets de première classe : **Workspace, Employé (contrat, caractère, modèle, permissions, mémoire), Tâche (arbre, statuts, budget, Q/R, livrables, coûts), Conversation, Trace de raisonnement, Écriture comptable, Table de tarifs providers.**
 
 ### 5.4 Données
 - **Local-first** : SQLite + dossiers de travail. Rien sur des serveurs tiers (hors appels LLM).
@@ -189,12 +204,12 @@ Objets de première classe en base : **Workspace, Employé (contrat, modèle, pe
 
 ---
 
-## 7. Sécurité, budget & confiance
+## 7. Sécurité & confiance
 
 - **Permissions par employé, à la iOS** : accès dossier/shell/navigateur individuels, visibles, révocables.
 - **Zones de travail** : par défaut un employé n'écrit que dans son dossier ; sortir = approbation.
 - **Actions irréversibles** : porte d'approbation non désactivable en V1.
-- **Budget = garde-fou dur** : la comptabilité du démon impute chaque appel ; le CEO arbitre en dessous du plafond, le démon **coupe** au plafond (et le CEO vient demander une rallonge dans l'inbox).
+- **Budgets durs** à deux niveaux (workspace + tâche) : pause propre et alerte à l'épuisement (voir §3.6).
 - **Journal d'audit** complet (actions + conversations + raisonnements).
 - Agents lisant du contenu externe : droits d'action réduits par défaut (anti prompt-injection).
 
@@ -202,23 +217,23 @@ Objets de première classe en base : **Workspace, Employé (contrat, modèle, pe
 
 ## 8. MVP (V1) — macOS d'abord
 
-**But : la boucle complète workspace → CEO → todo-list → cascade → rapport, en vrai.**
+**But : la boucle complète cabinet de recrutement → CEO → todo-list → cascade → rapport, en vrai.**
 
 Inclus :
-1. Création d'un workspace : embauche du CEO (mission, budget mensuel, providers autorisés) + discussion de fondation (choix des départements).
-2. **CEO + 2 départements** avec HEAD ; le CEO peut embaucher des spécialistes CDD dans son budget (choix du modèle selon coût).
-3. **Todo-list** : création de tâches (titre, description, objectifs), décomposition par le CEO, arbre de sous-tâches avec statuts visibles.
-4. **Rituels** : monitoring horaire paramétrable (CEO → HEADs → équipes) + rapport matinal du CEO.
+1. **Fondation d'un workspace** : conversation avec le cabinet de recrutement, profils de CEO avec jauges de caractère, cadrage (mission, budget mensuel, providers), mise en place des départements avec le CEO.
+2. **CEO + 2 départements** avec HEAD ; le CEO embauche des spécialistes CDD dans son budget (choix du modèle selon coût réel).
+3. **Todo-list** : tâches avec budget propre, décomposition par le CEO, arbre de sous-tâches avec statuts ; cycle de validation à double étage (manager sur les sous-tâches, utilisateur sur la tâche principale).
+4. **Rituels** : ronde technique gratuite du démon + ronde managériale en cascade quand il y a de l'activité ; rapport matinal du CEO ; fréquences paramétrables.
 5. Outils hôte : fichiers (dossiers autorisés), shell (avec approbation), recherche web.
-6. **Inbox** : questions des agents, demandes du CEO (permission, budget), livrables.
-7. **Audit** : conversations inter-agents + raisonnements internes consultables ; comptabilité par employé/tâche.
+6. **Inbox** : questions filtrées par les HEADs, demandes du CEO (permission, rallonge de budget), livrables à valider, alertes de pause budgétaire.
+7. **Audit & comptabilité** : conversations + raisonnements consultables ; coût en $ par agent et par tâche.
 8. Fin de mission : rapport + archivage réveillable des CDD.
 9. App barre de menu + notifications, auto-update, build signé/notarizé macOS ; CI 3 OS ; test d'endurance mémoire 48 h.
-10. Multi-provider minimal : Anthropic + 1 autre (ou modèle local) pour éprouver l'arbitrage coût/compétence du CEO.
+10. **Multi-provider** : Anthropic + 1 autre (ou modèle local) pour éprouver l'arbitrage coût/compétence du CEO.
 
-Exclus de la V1 : multi-workspaces simultanés (un seul suffit pour éprouver), marketplace, mobile, automatisation AppleScript poussée, distribution Windows/Linux.
+Exclus de la V1 : multi-workspaces simultanés, marketplace, mobile, automatisation AppleScript poussée, distribution Windows/Linux.
 
-**Test de réussite** : créer un workspace, donner au CEO une mission et un budget, poser une tâche floue dans la todo-list — et voir l'entreprise se structurer toute seule (départements, embauches), produire, faire son rapport le lendemain matin, le tout auditable jusqu'au raisonnement de chaque agent, avec une RAM au repos < 200 Mo.
+**Test de réussite** : fonder un workspace via le cabinet de recrutement, poser une tâche floue avec un budget — et voir l'entreprise se structurer seule, produire, se mettre en pause si le budget s'épuise, et venir au rapport le lendemain matin ; le tout auditable jusqu'au raisonnement de chaque agent, avec une RAM au repos < 200 Mo.
 
 ---
 
@@ -231,21 +246,35 @@ Exclus de la V1 : multi-workspaces simultanés (un seul suffit pour éprouver), 
 | 3 | Modèle éco | Sans objet pour l'instant |
 | 4 | Personnalité | Prénom, titre, avatar, personnalité par agent |
 | 5 | Autonomie | Paramétrable par agent |
-| 6 | Départements | Choisis à la fondation du workspace (discussion avec le CEO), extensibles ensuite |
+| 6 | Départements | Définis à la fondation du workspace, extensibles par le CEO ensuite |
 | 7 | Licence | Propriétaire |
 | 8 | Stack | Tauri v2 + démon Node sidecar + workers éphémères ; < 200 Mo au repos |
 | 9 | Recrutement | **Le CEO embauche**, dans un budget mensuel et une liste de providers fixés par l'utilisateur |
-| 10 | Interface principale | **Todo-list** (tâches → décomposition → arbre de sous-tâches) ; chat possible mais non privilégié |
+| 10 | Interface principale | **Todo-list** ; chat possible mais non privilégié |
 | 11 | Cycle de vie | Spécialistes en CDD : rapport de mission puis archivage réveillable |
-| 12 | Rituels | Monitoring horaire en cascade (CEO→HEADs→équipes) + rapport matinal au propriétaire ; fréquences paramétrables |
-| 13 | Transparence | Auditabilité totale : conversations inter-agents ET raisonnements internes |
+| 12 | Rituels | Monitoring horaire en cascade + rapport matinal ; fréquences paramétrables |
+| 13 | Transparence | Auditabilité totale : conversations ET raisonnements internes |
 | 14 | Multi-provider | Pilier V1 : chaque employé = un modèle choisi à l'embauche selon coût/compétence |
+| 15 | Validation des tâches | Double étage : manager confirme les sous-tâches ; CEO passe la principale à "Terminé" + message ; l'utilisateur vérifie, archive ou rouvre |
+| 16 | Budget par tâche | Chaque tâche a son budget ; épuisé → **pause propre + alerte utilisateur** |
+| 17 | Coûts | Le CEO voit les **coûts réels en tokens** ; le système déduit le coût $ par agent et par tâche |
+| 18 | Filtrage des questions | Les HEADs filtrent ; seules les questions sans réponse hiérarchique atteignent l'utilisateur |
+| 19 | Onboarding | **Cabinet de recrutement** en roleplay : interview projet, profils de CEO, **jauges de caractère** façon jeu vidéo |
+| 20 | Rituel & coût (proposition) | Ronde technique gratuite du démon à chaque tick ; ronde managériale LLM seulement si activité ou anomalie |
 
-## 10. Prochaines questions à trancher
+## 10. Dernières questions avant de passer à la suite
 
-1. **Fin de tâche** : qui déclare une tâche principale "terminée" — le CEO seul, ou validation finale par l'utilisateur (revue du livrable dans l'inbox) ?
-2. **Budget épuisé en cours de tâche** : le démon coupe et le CEO demande une rallonge — mais que fait-on du travail en cours ? Pause propre et reprise, ou finir la sous-tâche entamée ?
-3. **Table des tarifs providers** : maintenue à la main dans l'app, ou récupérée/actualisée automatiquement ? Et le CEO voit-il les prix réels (tokens) ou une abstraction ("junior 1 crédit/h, senior 5") ?
-4. **Rituel horaire et coût** : chaque réveil consomme des tokens. Si rien ne tourne, le CEO doit-il quand même faire sa ronde (facturée) ou le démon peut-il répondre "rien à signaler" gratuitement et ne réveiller personne ?
-5. **Questions des agents** : un spécialiste qui a une question pour vous — elle passe par sa hiérarchie (le HEAD peut souvent répondre lui-même, ça filtre) ou va directement dans votre inbox (plus rapide) ?
-6. **Nom du CEO et onboarding** : le premier contact (l'"entretien d'embauche" du CEO) est LE moment fondateur de l'expérience — qu'a-t-il d'autre à demander que mission/budget/départements ? (ton de l'entreprise, langue de travail, dossiers de la machine accessibles… ?)
+La vision est presque complète. Restent des points de détail et la préparation de la phase suivante :
+
+1. **Ronde à deux étages (décision 20)** : la proposition vous convient-elle en l'état ?
+2. **Budget d'une tâche** : fixé par vous à la création, ou proposé par le CEO (il estime le coût, vous validez) ? La seconde option est plus "vraie entreprise" (un devis).
+3. **Les jauges de caractère** : lesquelles ? (proposition : remise en question ↔ docilité, prudence ↔ audace, rigueur ↔ souplesse, concision ↔ détail dans les rapports, formel ↔ familier)
+4. **Le cabinet de recrutement** : uniquement à la fondation, ou réutilisable ensuite (remplacer un CEO qui ne convient pas — peut-on *licencier* le CEO ?) ?
+5. **Table des tarifs providers** : embarquée dans l'app et mise à jour avec les releases, ou éditable par l'utilisateur ?
+6. **Le nom** : "KoaTeam" est-il définitif ?
+
+### Prochaines étapes proposées (dès que la vision est verrouillée)
+
+1. **Spec produit V1** : consolider ce document en spécification (écrans, entités, flux) — la référence pour le développement.
+2. **Wireframes des 5 écrans clés** : todo-list/arbre de tâches, organigramme, inbox, fiche employé, vue audit.
+3. **Spike technique** : prototype minimal Tauri v2 + sidecar Node + un worker éphémère qui exécute une boucle agentique — pour dérisquer l'empaquetage multi-plateforme et valider la stratégie mémoire avant tout le reste.
