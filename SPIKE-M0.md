@@ -56,10 +56,19 @@ Le flux « pause + alerte » de SPEC-V1 §3.6 est démontré.
 - ⚠ Écarté : `@yao-pkg/pkg` (le téléchargement du runtime précompilé échoue derrière
   un proxy → recompilation de Node depuis les sources, inacceptable).
 
-### Build Tauri
+### Build Tauri — validé sur les 3 OS ✅
 
-- Linux : build local `.deb` avec sidecar embarqué (webkit2gtk 4.1). Voir CI pour les 3 OS.
-- macOS/Windows : validés par la CI GitHub Actions (`.github/workflows/ci.yml`).
+- **CI GitHub Actions verte** ([run n°2](https://github.com/matguig/koateam/actions/runs/29577757839)) :
+  - `daemon` (endurance 10 missions, ubuntu) : ✅ en ~10 s
+  - `desktop (ubuntu, deb)` : ✅ en ~4 min 30
+  - `desktop (macos, app+dmg)` : ✅ en ~4 min 20
+  - `desktop (windows, nsis)` : ✅ (après correctif : postject invoqué via Node —
+    Node 22 refuse de spawner `npx.cmd` sans shell, EINVAL)
+  - Artefacts téléchargeables : deb / dmg+app / installeur NSIS, chacun avec
+    UI + démon sidecar SEA embarqués.
+- Build local Linux également vérifié : `KoaTeam_0.1.0_amd64.deb` (46 Mo).
+- Non couvert par M0 (assumé) : signature/notarization macOS, signature Windows,
+  auto-update — prévus M5 (nécessitent certificats et secrets de release).
 
 ## Enseignements / décisions pour M1
 
