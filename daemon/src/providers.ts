@@ -29,11 +29,19 @@ export class MockProvider implements Provider {
   async complete(_model: string, system: string, messages: ChatMessage[]): Promise<LlmResult> {
     const turn = messages.filter((m) => m.role === 'assistant').length
     const goal = messages[0]?.content ?? ''
-    const actions = [
-      { action: 'tool', tool: 'write_file', args: { path: 'plan.md', content: `# Plan\n\nObjectif : ${goal}\n\n1. Analyser\n2. Produire\n3. Rapporter\n` } },
-      { action: 'tool', tool: 'write_file', args: { path: 'livrable.md', content: `# Livrable\n\nTravail effectué pour : ${goal}\n\nRésultat produit par le worker éphémère.\n` } },
-      { action: 'final', report: `Mission accomplie : « ${goal} ». 2 fichiers produits (plan.md, livrable.md).` },
-    ]
+    // Deux scénarios déterministes selon le rôle indiqué dans le prompt système :
+    // un CEO décompose et délègue ; un exécutant produit puis rapporte.
+    const actions = system.includes('RÔLE : CEO')
+      ? [
+          { action: 'create_subtask', args: { title: `Analyse & production — ${goal.slice(0, 60)}`, department: 'Marketing' } },
+          { action: 'create_subtask', args: { title: `Vérification & livraison — ${goal.slice(0, 60)}`, department: 'Dev' } },
+          { action: 'final', report: `Tâche évaluée (simple, ~5 % du budget) et décomposée en 2 sous-tâches, assignées aux départements Marketing et Dev.` },
+        ]
+      : [
+          { action: 'tool', tool: 'write_file', args: { path: 'plan.md', content: `# Plan\n\nObjectif : ${goal}\n\n1. Analyser\n2. Produire\n3. Rapporter\n` } },
+          { action: 'tool', tool: 'write_file', args: { path: 'livrable.md', content: `# Livrable\n\nTravail effectué pour : ${goal}\n\nRésultat produit par le worker éphémère.\n` } },
+          { action: 'final', report: `Sous-tâche terminée : « ${goal.slice(0, 80)} ». 2 fichiers produits (plan.md, livrable.md).` },
+        ]
     const chosen = actions[Math.min(turn, actions.length - 1)]
     const inputChars = system.length + messages.reduce((n, m) => n + m.content.length, 0)
     // simule un vrai coût : ~1 token / 4 caractères en entrée, sortie forfaitaire

@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { Avatar, Card, SectionLabel } from '../components/common'
+import { useData } from '../data/DataContext'
+import { initials } from '../data/mock'
 
 const selectStyle = {
   background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8,
@@ -29,7 +32,84 @@ const mono = {
   border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', marginTop: 4,
 } as const
 
+function LiveAudit() {
+  const data = useData()
+  const [selected, setSelected] = useState(0)
+  const trace = data.traces[selected]
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+  return (
+    <div style={{ padding: '26px 30px 48px', maxWidth: 1060, margin: '0 auto' }}>
+      <h1 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 700, letterSpacing: '-.02em' }}>Audit</h1>
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>
+        {data.traces.length} trace(s) de raisonnement · tout est journalisé, rien ne se perd
+      </div>
+      {data.traces.length === 0 && (
+        <Card style={{ padding: '22px 18px', textAlign: 'center', color: 'var(--text3)', fontSize: 12.5 }}>
+          Aucune intervention pour l’instant — créez une tâche.
+        </Card>
+      )}
+      {trace && (
+        <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {data.traces.map((t, i) => {
+              const emp = t.employee_id ? data.employees[t.employee_id] : null
+              return (
+                <div key={t.id} onClick={() => setSelected(i)}
+                  className={i === selected ? undefined : 'hov-border'} style={{
+                    background: 'var(--card)', borderRadius: 11, padding: '11px 13px', cursor: 'pointer',
+                    border: i === selected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text3)', marginBottom: 5 }}>
+                    <span>{t.trigger} · {fmtTime(t.started_at)}</span>
+                    <span>{t.cost.toFixed(4)} $</span>
+                  </div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                    <strong style={{ color: emp?.color ?? 'var(--text)' }}>{emp?.name ?? '?'}</strong>
+                    {' — '}{t.outcome || 'en cours'}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <Card style={{ padding: '16px 18px' }}>
+            {(() => {
+              const emp = trace.employee_id ? data.employees[trace.employee_id] : null
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4 }}>
+                  <Avatar color={emp?.color ?? '#8e8e93'} init={emp ? initials(emp.name) : '?'} size={26} fontSize={10} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>Trace de raisonnement — {emp?.name ?? '?'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>{trace.trigger} · {fmtTime(trace.started_at)}</div>
+                  </div>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
+                    {trace.tokens_in} tok in · {trace.tokens_out} tok out · <strong style={{ color: 'var(--text)' }}>{trace.cost.toFixed(4)} $</strong>
+                  </span>
+                </div>
+              )
+            })()}
+            <div style={{
+              borderLeft: '2px solid var(--border)', margin: '14px 0 0 12px', paddingLeft: 16,
+              display: 'flex', flexDirection: 'column', gap: 12, fontSize: 12.5, lineHeight: 1.55,
+            }}>
+              {trace.events.map((e, i) => (
+                <div key={i}>
+                  <SectionLabel style={{ marginBottom: 0 }}>{e.kind}</SectionLabel>
+                  <span style={{ color: 'var(--text2)' }}>{e.text}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AuditScreen() {
+  const data = useData()
+  if (data.live) return <LiveAudit />
   return (
     <div style={{ padding: '26px 30px 48px', maxWidth: 1060, margin: '0 auto' }}>
       <h1 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 700, letterSpacing: '-.02em' }}>Audit</h1>

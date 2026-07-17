@@ -1,5 +1,6 @@
 import { Avatar, SectionLabel, TraitSlider } from './common'
-import { EMPLOYEES, PERM_COLORS, TRAIT_LABELS, fmt, initials } from '../data/mock'
+import { useData } from '../data/DataContext'
+import { PERM_COLORS, TRAIT_LABELS, fmt, initials } from '../data/mock'
 
 const HISTORY: { when: string; what: string; cost: number }[] = [
   { when: 'auj. 09:18', what: 'Intervention sur sous-tâche assignée', cost: 0.14 },
@@ -9,7 +10,8 @@ const HISTORY: { when: string; what: string; cost: number }[] = [
 ]
 
 export function EmployeeDrawer({ empId, onClose }: { empId: string; onClose: () => void }) {
-  const emp = EMPLOYEES[empId]
+  const data = useData()
+  const emp = data.employees[empId]
   if (!emp) return null
 
   return (

@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Avatar, Card } from '../components/common'
+import { useData } from '../data/DataContext'
+import { initials } from '../data/mock'
 
 function ItemIcon({ bg, children }: { bg: string; children: ReactNode }) {
   return (
@@ -20,10 +22,74 @@ const btnGhost = {
   padding: '6px 12px', color: 'var(--text2)', fontSize: 12, cursor: 'pointer',
 } as const
 
+const INBOX_ICONS: Record<string, [string, string]> = {
+  budget_pause_alert: ['⚠', '#ff453a'],
+  deliverable_review: ['✓', '#30d158'],
+  question: ['?', '#bf5af2'],
+  info: ['ℹ', '#0a84ff'],
+}
+
+function LiveInbox() {
+  const data = useData()
+  return (
+    <div style={{ padding: '26px 30px 48px', maxWidth: 780, margin: '0 auto' }}>
+      <h1 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 700, letterSpacing: '-.02em' }}>Inbox</h1>
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 18 }}>
+        {data.inbox.length} élément(s) nécessitent votre attention
+      </div>
+      {data.inbox.length === 0 && (
+        <Card style={{ padding: '22px 18px', textAlign: 'center', color: 'var(--text3)', fontSize: 12.5 }}>
+          Rien à traiter — l’entreprise travaille. ☕
+        </Card>
+      )}
+      {data.inbox.map((item) => {
+        const [icon, color] = INBOX_ICONS[item.type] ?? INBOX_ICONS.info
+        const emp = item.employee_id ? data.employees[item.employee_id] : null
+        return (
+          <Card key={item.id} style={{
+            padding: '15px 16px', marginBottom: 10,
+            border: item.type === 'budget_pause_alert' ? '1px solid color-mix(in srgb, #ff453a 40%, var(--border))' : undefined,
+          }}>
+            <div style={{ display: 'flex', gap: 11 }}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: `color-mix(in srgb, ${color} 16%, transparent)`, color,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14,
+              }}>{icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text2)', margin: '3px 0 10px' }}>
+                  {emp ? `${emp.name} · ` : ''}{item.body}
+                </div>
+                <div style={{ display: 'flex', gap: 7 }}>
+                  {item.type === 'budget_pause_alert' && item.task_id && (
+                    <button style={btnPrimary} onClick={async () => { await data.actions.topupTask(item.task_id!, 0.05); await data.actions.resolveInbox(item.id) }}>Rallonger de 0,05 $</button>
+                  )}
+                  {item.type === 'deliverable_review' && item.task_id && (
+                    <>
+                      <button style={btnPrimary} onClick={async () => { await data.actions.archiveTask(item.task_id!); await data.actions.resolveInbox(item.id) }}>Archiver</button>
+                      <button style={btnGhost} onClick={async () => { await data.actions.reopenTask(item.task_id!); await data.actions.resolveInbox(item.id) }}>Rouvrir</button>
+                    </>
+                  )}
+                  <button style={btnGhost} onClick={() => data.actions.resolveInbox(item.id)}>Ignorer</button>
+                </div>
+              </div>
+              {emp && <Avatar color={emp.color} init={initials(emp.name)} size={26} fontSize={10} />}
+            </div>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
 export function InboxScreen() {
+  const data = useData()
   const [perm, setPerm] = useState<'once' | 'always' | 'denied' | null>(null)
   const [answered, setAnswered] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+
+  if (data.live) return <LiveInbox />
 
   const permMsg =
     perm === 'once' ? '✓ Accès shell accordé pour cette exécution — Karim a relancé les tests.'

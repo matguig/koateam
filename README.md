@@ -6,7 +6,7 @@ Un workspace = une entreprise : un CEO recruté via un cabinet virtuel (jauges d
 
 ## État du projet
 
-Conception terminée · UI implémentée · **spike M0 validé (GO)** — prochaine étape : M1 (socle).
+Conception terminée · spike M0 validé (GO) · **M1 (socle) livré** : SQLite, entités réelles, flux cœur en cascade, UI branchée sur le démon — prochaine étape : M2 (cabinet de recrutement, rituels planifiés, vrais providers).
 
 | Document / dossier | Contenu |
 |---|---|

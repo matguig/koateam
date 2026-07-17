@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
+import { useData } from './data/DataContext'
 import { EmployeeDrawer } from './components/EmployeeDrawer'
 import { TasksScreen } from './screens/TasksScreen'
 import { OrgScreen } from './screens/OrgScreen'
@@ -14,6 +15,8 @@ export default function App() {
   const [tab, setTab] = useState<Screen>('taches')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [openEmployee, setOpenEmployee] = useState<string | null>(null)
+  const { employees } = useData()
+  const ceoId = Object.values(employees).find((e) => e.role === 'ceo')?.id ?? 'lea'
 
   return (
     <div data-theme={theme} style={{
@@ -25,7 +28,7 @@ export default function App() {
         theme={theme}
         onNavigate={setTab}
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        onOpenCeo={() => setOpenEmployee('lea')}
+        onOpenCeo={() => setOpenEmployee(ceoId)}
       />
       <main style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         {tab === 'taches' && <TasksScreen />}

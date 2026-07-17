@@ -1,4 +1,6 @@
 import { Avatar } from './common'
+import { useData } from '../data/DataContext'
+import { fmt } from '../data/mock'
 import type { Screen } from '../types'
 
 const NAV: { key: Screen; label: string; icon: JSX.Element; badge?: number }[] = [
@@ -35,6 +37,14 @@ export function Sidebar({ tab, theme, onNavigate, onToggleTheme, onOpenCeo }: {
   onToggleTheme: () => void
   onOpenCeo: () => void
 }) {
+  const data = useData()
+  const ceo = Object.values(data.employees).find((e) => e.role === 'ceo')
+  const activeCount = Object.values(data.employees).filter((e) => !e.archived).length
+  const spent = data.totals.consumption
+  const spentPct = Math.min(100, Math.round((spent / data.budgetAmount) * 100))
+  const engPct = Math.min(100 - spentPct, Math.round((data.totals.engaged / data.budgetAmount) * 100))
+  const inboxCount = data.live ? data.inbox.length : 3
+
   return (
     <aside style={{
       width: 238, flexShrink: 0, background: 'var(--side)', borderRight: '1px solid var(--border)',
@@ -48,17 +58,21 @@ export function Sidebar({ tab, theme, onNavigate, onToggleTheme, onOpenCeo }: {
 
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, margin: '16px 0 6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#30d158', animation: 'kpulse 2.4s infinite' }} />
-          <span style={{ fontWeight: 700, fontSize: 13 }}>Lancement SaaS Photo</span>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: data.live ? '#30d158' : '#ff9f0a', animation: 'kpulse 2.4s infinite' }} />
+          <span style={{ fontWeight: 700, fontSize: 13 }}>{data.workspaceName}</span>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text3)', margin: '3px 0 10px' }}>Workspace actif · 9 employés</div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', margin: '3px 0 10px' }}>
+          {data.live ? `Démon connecté · ${activeCount} employés` : 'Mode démo · démon absent'}
+        </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text2)', marginBottom: 5 }}>
           <span>Budget du mois</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}><strong style={{ color: 'var(--text)' }}>240 $</strong> / 400 $</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <strong style={{ color: 'var(--text)' }}>{data.live ? fmt(spent) : '240 $'}</strong> / {data.live ? fmt(data.budgetAmount) : '400 $'}
+          </span>
         </div>
         <div style={{ height: 5, borderRadius: 3, background: 'var(--border)', overflow: 'hidden', display: 'flex' }}>
-          <span style={{ width: '60%', background: 'var(--accent)' }} />
-          <span style={{ width: '21%', background: 'color-mix(in srgb, var(--accent) 40%, transparent)' }} />
+          <span style={{ width: `${data.live ? spentPct : 60}%`, background: 'var(--accent)' }} />
+          <span style={{ width: `${data.live ? engPct : 21}%`, background: 'color-mix(in srgb, var(--accent) 40%, transparent)' }} />
         </div>
       </div>
 
@@ -81,8 +95,8 @@ export function Sidebar({ tab, theme, onNavigate, onToggleTheme, onOpenCeo }: {
               color: on ? 'var(--text)' : 'var(--text2)',
             }}>
               {icon}{label}
-              {badge != null && (
-                <span style={{ marginLeft: 'auto', background: '#ff453a', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 9, padding: '1px 6px' }}>{badge}</span>
+              {badge != null && inboxCount > 0 && (
+                <span style={{ marginLeft: 'auto', background: '#ff453a', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 9, padding: '1px 6px' }}>{inboxCount}</span>
               )}
             </div>
           )
@@ -103,9 +117,9 @@ export function Sidebar({ tab, theme, onNavigate, onToggleTheme, onOpenCeo }: {
         display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)',
         border: '1px solid var(--border)', borderRadius: 12, padding: 10, cursor: 'pointer',
       }}>
-        <Avatar color="#bf5af2" init="LF" size={32} fontSize={12} />
+        <Avatar color={ceo?.color ?? '#bf5af2'} init={ceo ? ceo.name.split(' ').map((w) => w[0]).join('').slice(0, 2) : 'LF'} size={32} fontSize={12} />
         <span style={{ minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 12, fontWeight: 600 }}>Léa Fontaine · CEO</span>
+          <span style={{ display: 'block', fontSize: 12, fontWeight: 600 }}>{ceo ? `${ceo.name.split(' ')[0]} · CEO` : 'Léa Fontaine · CEO'}</span>
           <span style={{ display: 'block', fontSize: 11, color: 'var(--accent)' }}>Rapport du matin →</span>
         </span>
       </div>

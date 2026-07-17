@@ -11,12 +11,13 @@ interface Mission {
   id: string
   goal: string
   model: string
+  role: 'ceo' | 'specialist'
   workzone: string
 }
 
 interface RpcResponse {
   id: number
-  result?: { content: string; cost: number }
+  result?: Record<string, unknown> & { content?: string }
   error?: string
 }
 
@@ -33,15 +34,20 @@ function notify(method: string, params: unknown): void {
   process.stdout.write(JSON.stringify({ method, params }) + '\n')
 }
 
-const SYSTEM = `Tu es un employé virtuel KoaTeam. Tu travailles dans une zone de travail dédiée.
+const SYSTEM_SPECIALIST = `Tu es un employé virtuel KoaTeam. Tu travailles dans une zone de travail dédiée.
 Réponds UNIQUEMENT par un objet JSON, sans autre texte :
 - {"action":"tool","tool":"write_file","args":{"path":"...","content":"..."}} pour écrire un fichier
 - {"action":"tool","tool":"read_file","args":{"path":"..."}} pour lire un fichier
 - {"action":"tool","tool":"list_files","args":{}} pour lister la zone de travail
 - {"action":"final","report":"..."} quand la mission est terminée (rapport bref).`
 
+const SYSTEM_CEO = `RÔLE : CEO. Tu es le CEO virtuel d'un workspace KoaTeam. On te confie une tâche :
+évalue-la, découpe-la en sous-tâches et assigne chacune à un département.
+Réponds UNIQUEMENT par un objet JSON, sans autre texte :
+- {"action":"create_subtask","args":{"title":"...","department":"Marketing|Dev"}} pour déléguer une sous-tâche
+- {"action":"final","report":"..."} quand la décomposition est complète (note d'évaluation : complexité, % du budget).`
+
 function runTool(workzone: string, tool: string, args: Record<string, string>): string {
-  // Garde-fou zone de travail : aucun chemin ne peut sortir du dossier de mission
   const safe = (p: string) => {
     const full = normalize(join(workzone, p))
     if (!full.startsWith(normalize(workzone))) throw new Error('chemin hors zone de travail')
@@ -63,6 +69,7 @@ function runTool(workzone: string, tool: string, args: Record<string, string>): 
 export async function runWorker(): Promise<void> {
   const mission: Mission = JSON.parse(process.env.KOATEAM_MISSION ?? '{}')
   mkdirSync(mission.workzone, { recursive: true })
+  const system = mission.role === 'ceo' ? SYSTEM_CEO : SYSTEM_SPECIALIST
 
   const rl = createInterface({ input: process.stdin })
   rl.on('line', (line) => {
@@ -74,26 +81,27 @@ export async function runWorker(): Promise<void> {
   })
 
   const messages: ChatMessage[] = [{ role: 'user', content: mission.goal }]
-  const MAX_STEPS = 8
+  const MAX_STEPS = 10
 
   for (let step = 0; step < MAX_STEPS; step++) {
     notify('stats', { rss: process.memoryUsage().rss })
-    const res = await rpc('llm.complete', { missionId: mission.id, model: mission.model, system: SYSTEM, messages })
+    const res = await rpc('llm.complete', { model: mission.model, system, messages })
 
     if (res.error === 'budget_exceeded') {
-      notify('report', { status: 'paused_budget', report: `Budget de mission épuisé à l'étape ${step + 1} — pause propre.` })
+      notify('report', { status: 'paused_budget', report: `Budget épuisé à l'étape ${step + 1} — pause propre.` })
       process.exit(0)
     }
-    if (res.error || !res.result) {
+    if (res.error || !res.result?.content) {
       notify('report', { status: 'failed', report: `Erreur LLM : ${res.error ?? 'réponse vide'}` })
       process.exit(1)
     }
 
-    messages.push({ role: 'assistant', content: res.result.content })
+    const content = String(res.result.content)
+    messages.push({ role: 'assistant', content })
 
     let parsed: { action: string; tool?: string; args?: Record<string, string>; report?: string }
     try {
-      parsed = JSON.parse(res.result.content)
+      parsed = JSON.parse(content)
     } catch {
       messages.push({ role: 'user', content: 'Réponse invalide : réponds uniquement en JSON conforme au protocole.' })
       continue
@@ -103,6 +111,11 @@ export async function runWorker(): Promise<void> {
       notify('report', { status: 'done', report: parsed.report ?? '' })
       process.exit(0)
     }
+    if (parsed.action === 'create_subtask' && mission.role === 'ceo') {
+      const r = await rpc('task.create_subtask', parsed.args ?? {})
+      messages.push({ role: 'user', content: r.error ? `ERREUR : ${r.error}` : `OK, sous-tâche créée (${r.result?.subtaskId}).` })
+      continue
+    }
     if (parsed.action === 'tool' && parsed.tool) {
       let output: string
       try {
@@ -110,6 +123,7 @@ export async function runWorker(): Promise<void> {
       } catch (e) {
         output = `ERREUR outil : ${(e as Error).message}`
       }
+      notify('event', { kind: 'outil', text: `${parsed.tool} → ${output.slice(0, 120)}` })
       messages.push({ role: 'user', content: `Résultat de ${parsed.tool} : ${output}` })
     }
   }
