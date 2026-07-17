@@ -6,7 +6,7 @@ Un workspace = une entreprise : un CEO recruté via un cabinet virtuel (jauges d
 
 ## État du projet
 
-Conception terminée · spike M0 validé (GO) · **M1 (socle) livré** : SQLite, entités réelles, flux cœur en cascade, UI branchée sur le démon — prochaine étape : M2 (cabinet de recrutement, rituels planifiés, vrais providers).
+Conception terminée · spike M0 (GO) · M1 (socle) · **M2 livré** : fondation conversationnelle via le cabinet de recrutement, rituels à deux étages (ronde technique gratuite + ronde managériale + rapport du matin), réglages (clé Anthropic à chaud, rythmes) — prochaine étape : M3 (vrais managers LLM, questions hiérarchiques, embauche par le CEO).
 
 | Document / dossier | Contenu |
 |---|---|
