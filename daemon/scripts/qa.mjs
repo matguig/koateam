@@ -5,7 +5,7 @@
 //   node scripts/qa.mjs
 
 import { spawn } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
+import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -14,10 +14,20 @@ const BASE = `http://127.0.0.1:${PORT}`
 const dataDir = mkdtempSync(join(tmpdir(), 'koateam-qa-'))
 const DIST = join(import.meta.dirname, '../dist/index.js')
 
+// Stub Claude Code : détection + exécution CLI déterministes, sans clé API.
+// Prioritaire dans le PATH du démon (même si une vraie CLI est installée).
+const stubDir = mkdtempSync(join(tmpdir(), 'koateam-clistub-'))
+writeFileSync(join(stubDir, 'claude'), `#!/bin/sh
+if [ "$1" = "--version" ]; then echo "9.9.9 (stub Claude Code)"; exit 0; fi
+echo "produit par le stub" > livrable-cli.md
+echo '{"type":"result","subtype":"success","result":"Travail effectué par le stub Claude Code : livrable-cli.md créé dans la zone de travail.","total_cost_usd":0.0123,"num_turns":2}'
+`)
+chmodSync(join(stubDir, 'claude'), 0o755)
+
 let daemon = null
 const startDaemon = () => {
   daemon = spawn(process.execPath, [DIST], {
-    env: { ...process.env, KOATEAM_PORT: String(PORT), KOATEAM_DATA: dataDir },
+    env: { ...process.env, PATH: `${stubDir}:${process.env.PATH}`, KOATEAM_PORT: String(PORT), KOATEAM_DATA: dataDir },
     stdio: 'ignore',
   })
 }
@@ -56,6 +66,13 @@ async function waitTask(id, timeoutMs = 30_000) {
 startDaemon()
 try {
   await waitReady()
+
+  // La détection CLI est asynchrone au démarrage : on l'attend avant de fonder
+  for (let i = 0; i < 40; i++) {
+    const s = await get('/settings')
+    if (s.cliAgents?.some((a) => a.found)) break
+    await sleep(100)
+  }
 
   console.log('\n— Fondation —')
   check('pas de workspace au premier démarrage', (await get('/state')).workspace === null)
@@ -119,6 +136,28 @@ try {
   await post(`/tasks/${t2}/topup`, { amount: 0.05 })
   const resumed = await waitTask(t2)
   check('rallonge → reprise → done', resumed.status === 'done')
+
+  console.log('\n— Agents CLI locaux (Claude Code / Codex) —')
+  const cliSettings = await get('/settings')
+  const cc = cliSettings.cliAgents.find((a) => a.id === 'claude-code')
+  const cx = cliSettings.cliAgents.find((a) => a.id === 'codex')
+  check('Claude Code détecté (version remontée)', cc?.found === true && String(cc.version).includes('stub'))
+  check('Codex correctement signalé absent', cx?.found === false)
+  const dev = (await get('/state')).employees.find((e) => e.department === 'Dev' && e.role === 'specialist')
+  check('le spécialiste Dev est embauché sur Claude Code', dev?.model === 'claude-code')
+
+  const { id: c1 } = await (await post('/tasks', { title: 'Intégration via agent CLI', budget: 0.05 })).json()
+  const doneC1 = await waitTask(c1, 60_000)
+  check('cascade avec sous-tâche exécutée par la CLI → done', doneC1.status === 'done')
+  const stC = await get('/state')
+  const cliEntry = stC.ledger.find((l) => {
+    if (l.type !== 'consumption' || !l.detail) return false
+    try { const d = JSON.parse(l.detail); return d.cli === true && d.model === 'claude-code' } catch { return false }
+  })
+  check('coût rapporté par la CLI imputé au ledger (0,0123 $)', !!cliEntry && Math.abs(cliEntry.amount - 0.0123) < 1e-9)
+  const traces = await get('/traces')
+  check('trace d’intervention CLI journalisée', traces.some((t) => t.trigger.includes('agent CLI')))
+  await post(`/tasks/${c1}/archive`)
 
   console.log('\n— Questions hiérarchiques (M3) —')
   // 1. Le HEAD filtre : la question ne doit PAS atteindre l'utilisateur

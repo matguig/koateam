@@ -7,6 +7,7 @@
 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { detectCliAgents, type CliAgent } from './cliAgents.js'
 import { openDb } from './db.js'
 import { Foundation } from './foundation.js'
 import { InterventionRunner } from './interventions.js'
@@ -39,22 +40,38 @@ function main(): void {
   let peakRss = 0
   let watchdogAlerts = 0
 
-  const runner = new InterventionRunner(store, providers, DATA_DIR, () => api.broadcast())
+  // Détection des agents CLI locaux (Claude Code, Codex) — par défaut, au
+  // démarrage ; re-détection possible depuis les réglages.
+  let cliAgents: CliAgent[] = []
+  const redetectCli = async () => {
+    cliAgents = await detectCliAgents()
+    const found = cliAgents.filter((a) => a.found)
+    console.log(`[koateam-daemon] agents CLI : ${found.length ? found.map((a) => `${a.id} (${a.version})`).join(', ') : 'aucun détecté'}`)
+    return cliAgents
+  }
+
+  const runner = new InterventionRunner(store, providers, DATA_DIR, () => api.broadcast(), () => cliAgents)
   // Gamme de modèles à l'embauche (SPEC-V1 §3.2) : vrais modèles Claude dès
   // que la clé Anthropic est configurée — sonnet pour la direction, haiku
-  // pour l'exécution — sinon provider de démonstration.
-  const foundation = new Foundation(store, () =>
-    providers.has('anthropic')
+  // pour l'exécution — sinon provider de démonstration. Si Claude Code ou
+  // Codex est installé, le spécialiste Dev est embauché dessus.
+  const foundation = new Foundation(store, () => {
+    const cli = cliAgents.find((a) => a.found)
+    const base = providers.has('anthropic')
       ? { ceo: 'claude-sonnet-5', head: 'claude-haiku-4-5-20251001', specialist: 'claude-haiku-4-5-20251001' }
-      : { ceo: 'mock-fast', head: 'mock-fast', specialist: 'mock-fast' },
-  )
+      : { ceo: 'mock-fast', head: 'mock-fast', specialist: 'mock-fast' }
+    return { ...base, devSpecialist: cli?.id }
+  })
   const rituals = new RitualScheduler(store, runner, () => api.broadcast())
   const api = createApi({
     store, runner, foundation, providers, startedAt: Date.now(),
     peakRss: () => peakRss,
     watchdogAlerts: () => watchdogAlerts,
+    cliAgents: () => cliAgents,
+    redetectCli,
   })
   rituals.start()
+  void redetectCli().then(() => api.broadcast())
 
   // Récupération au démarrage : un kill/crash en pleine tâche ne doit rien
   // perdre — les tâches interrompues repartent (l'état est 100 % SQLite).

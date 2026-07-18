@@ -16,6 +16,10 @@ export const PRICING: ModelPrice[] = [
   // pour que la comptabilité et les budgets soient exercés pour de vrai.
   { provider: 'mock', model: 'mock-fast', inputPerMtok: 0.8, outputPerMtok: 4.0 },
   { provider: 'local', model: 'local-free', inputPerMtok: 0, outputPerMtok: 0 },
+  // Agents CLI locaux (Claude Code, Codex) : le coût n'est pas tarifé au token
+  // par KoaTeam — il est rapporté par la CLI elle-même et imputé tel quel.
+  { provider: 'cli', model: 'claude-code', inputPerMtok: 0, outputPerMtok: 0 },
+  { provider: 'cli', model: 'codex', inputPerMtok: 0, outputPerMtok: 0 },
 ]
 
 export function priceOf(model: string): ModelPrice {

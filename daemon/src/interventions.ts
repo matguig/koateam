@@ -6,6 +6,7 @@
 import { spawn } from 'node:child_process'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+import { isCliModel, runCliAgent, type CliAgent } from './cliAgents.js'
 import { PRICING, costOf } from './pricing.js'
 import type { Provider } from './providers.js'
 import type { Employee, Store, Task, TraceEvent } from './store.js'
@@ -44,6 +45,8 @@ export class InterventionRunner {
     private providers: Map<string, Provider>,
     private dataDir: string,
     private onChange: () => void,
+    /** Agents CLI détectés sur la machine (Claude Code, Codex…). */
+    private getCliAgents: () => CliAgent[] = () => [],
   ) {}
 
   /** Point d'entrée du flux cœur : l'utilisateur a créé une tâche. */
@@ -138,12 +141,17 @@ export class InterventionRunner {
     const base = `${persona(employee)}\nEntreprise « ${ws.name} » — mission : ${ws.mission}\nLangue de travail : français.`
 
     if (item.kind === 'plan') {
-      const models = PRICING.map((p) => `${p.model} (${p.inputPerMtok}$/${p.outputPerMtok}$ par Mtok in/out)`).join(', ')
+      const cliDetected = this.getCliAgents().filter((a) => a.found)
+      const cliLine = cliDetected.length
+        ? `\nAgents CLI détectés sur cette machine, embauchables comme « modèle » (ils travaillent directement dans la zone de travail, coût facturé par leur propre abonnement) : ${cliDetected.map((a) => a.id).join(', ')}.`
+        : ''
+      const models = PRICING.filter((p) => p.provider !== 'cli' || cliDetected.some((a) => a.id === p.model))
+        .map((p) => `${p.model} (${p.inputPerMtok}$/${p.outputPerMtok}$ par Mtok in/out)`).join(', ')
       const budget = mainTask ? `Budget alloué à cette tâche : ${mainTask.budget_allocated.toFixed(2)} $ (plafond dur).` : ''
       const departments = [...new Set(this.store.listEmployees(ws.id).filter((e) => e.department).map((e) => e.department))].join(', ')
       return `RÔLE : CEO. ${base}
 On te confie une tâche : évalue-la, embauche si besoin, découpe-la en sous-tâches assignées aux départements.
-${budget} Départements existants : ${departments}. Modèles disponibles et tarifs : ${models}.
+${budget} Départements existants : ${departments}. Modèles disponibles et tarifs : ${models}.${cliLine}
 Arbitre le coût : modèle économique pour les tâches mécaniques, modèle capable pour les tâches complexes.
 ${PROTOCOL_HEADER}
 - {"action":"hire","args":{"title":"...","department":"...","model":"<un modèle de la liste>"}} pour embaucher un spécialiste
@@ -206,6 +214,14 @@ ${PROTOCOL_HEADER}
     // Le travail est budgété sur la tâche PRINCIPALE (comptabilité d'engagement) ;
     // une ronde est budgétée sur l'enveloppe du workspace.
     const mainTask = task ? (task.parent_id ? this.store.getTask(task.parent_id)! : task) : null
+
+    // Employé « agent CLI » (Claude Code / Codex) : la CLI locale exécute la
+    // sous-tâche en headless dans la zone de travail, pas notre boucle LLM.
+    if (item.kind === 'execute' && task && mainTask && isCliModel(employee.model)) {
+      await this.runCliIntervention(item, task, mainTask, employee)
+      return
+    }
+
     const events: TraceEvent[] = []
     let tokensIn = 0
     let tokensOut = 0
@@ -263,7 +279,10 @@ ${PROTOCOL_HEADER}
         if (msg.method === 'org.hire' && msg.id !== undefined && employee.role === 'ceo') {
           try {
             const { title, department, model } = msg.params as { title: string; department?: string; model?: string }
-            const chosenModel = model && PRICING.some((p) => p.model === model) ? model : employee.model
+            const detectedCli = this.getCliAgents().filter((a) => a.found).map((a) => a.id)
+            const known = model && PRICING.some((p) => p.model === model)
+            const usable = known && (!isCliModel(model!) || detectedCli.includes(model as CliAgent['id']))
+            const chosenModel = usable ? model! : employee.model
             const existing = this.store.listEmployees(ws.id)
             const name = HIRE_NAMES.find((n) => !existing.some((e) => e.name === n)) ?? `Recrue ${existing.length + 1}`
             const dept = department ?? 'Général'
@@ -366,6 +385,51 @@ ${PROTOCOL_HEADER}
     } else if (task && mainTask) {
       this.afterIntervention(item, ws.id, task, mainTask, employee, outcome, report)
     }
+    this.onChange()
+  }
+
+  /** Sous-tâche exécutée par un agent CLI local (Claude Code / Codex). */
+  private async runCliIntervention(item: QueueItem, task: Task, mainTask: Task, employee: Employee): Promise<void> {
+    const ws = this.store.getWorkspace()!
+    const model = employee.model as CliAgent['id']
+    const events: TraceEvent[] = []
+    const push = (kind: string, text: string) => events.push({ at: new Date().toISOString(), kind, text })
+    const traceId = this.store.traceStart({
+      workspace_id: ws.id, employee_id: employee.id, task_id: task.id,
+      trigger: `Sous-tâche assignée (agent CLI ${model})`,
+    })
+
+    // Garde-fou budgétaire identique au flux LLM : vérifié AVANT de lancer
+    if (this.store.spentOnTask(mainTask.id) >= mainTask.budget_allocated) {
+      push('issue', 'paused_budget — budget épuisé avant lancement de la CLI')
+      this.store.traceFinish(traceId, events, 0, 0, 0, 'paused_budget')
+      this.afterIntervention(item, ws.id, task, mainTask, employee, 'paused_budget', 'Budget épuisé — pause propre.')
+      return
+    }
+
+    this.store.updateTask(task.id, { status: 'in_progress' })
+    this.onChange()
+
+    const prompt = [
+      this.goalFor(item, task, mainTask),
+      mainTask.description ? `Contexte : ${mainTask.description}` : '',
+      'Travaille dans le répertoire courant (ta zone de travail dédiée), produis les fichiers nécessaires, puis résume brièvement ce que tu as fait.',
+    ].filter(Boolean).join('\n\n')
+
+    const res = await runCliAgent(model, prompt, join(this.dataDir, 'workzones', mainTask.id))
+    for (const e of res.events) push(e.kind, e.text)
+
+    if (res.costUsd > 0) {
+      this.store.ledgerAppend({
+        workspace_id: ws.id, type: 'consumption', amount: res.costUsd,
+        task_id: mainTask.id, employee_id: employee.id,
+        detail: { model, cli: true, subtask: task.id },
+      })
+    }
+    const outcome = res.ok ? 'done' : 'failed'
+    push('issue', `${outcome} — ${res.report.slice(0, 200)}`)
+    this.store.traceFinish(traceId, events, 0, 0, res.costUsd, outcome)
+    this.afterIntervention(item, ws.id, task, mainTask, employee, outcome, res.report)
     this.onChange()
   }
 

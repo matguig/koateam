@@ -3,6 +3,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { WebSocketServer, WebSocket } from 'ws'
+import type { CliAgent } from './cliAgents.js'
 import type { Foundation } from './foundation.js'
 import type { InterventionRunner } from './interventions.js'
 import { applyAnthropicKey } from './providers.js'
@@ -17,6 +18,8 @@ export interface ApiContext {
   startedAt: number
   peakRss: () => number
   watchdogAlerts: () => number
+  cliAgents: () => CliAgent[]
+  redetectCli: () => Promise<CliAgent[]>
 }
 
 export function createApi(ctx: ApiContext) {
@@ -59,6 +62,7 @@ export function createApi(ctx: ApiContext) {
     anthropicConfigured: ctx.providers.has('anthropic'),
     ritualTickMinutes: Number(store.settingGet('ritual_tick_minutes') ?? 60),
     morningReportTime: store.settingGet('morning_report_time') ?? '09:00',
+    cliAgents: ctx.cliAgents(),
   })
 
   const json = (res: ServerResponse, code: number, body: unknown) => {
@@ -133,6 +137,9 @@ export function createApi(ctx: ApiContext) {
       if (req.method === 'GET' && path === '/settings') return json(res, 200, settingsView())
       if (req.method === 'POST' && path === '/settings') {
         const b = await readBody(req)
+        if (b.redetect_cli) {
+          await ctx.redetectCli()
+        }
         if (typeof b.anthropic_api_key === 'string') {
           // M2 : stockée dans la base locale ; trousseau système prévu en M5
           const key = b.anthropic_api_key.trim()

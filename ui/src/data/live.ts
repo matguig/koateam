@@ -36,10 +36,19 @@ export interface DaemonLedgerRow {
   task_id: string | null; employee_id: string | null; detail: string | null
 }
 
+export interface DaemonCliAgent {
+  id: string
+  label: string
+  bin: string
+  found: boolean
+  version: string | null
+}
+
 export interface DaemonSettings {
   anthropicConfigured: boolean
   ritualTickMinutes: number
   morningReportTime: string
+  cliAgents: DaemonCliAgent[]
 }
 
 export interface DaemonState {

@@ -80,6 +80,29 @@ function LiveSettings() {
         </div>
       </Card>
 
+      <Card style={{ padding: '16px 18px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>Agents CLI locaux</div>
+          <button className="hov-text" onClick={async () => { await data.actions.saveSettings({ redetect_cli: true }) }} style={{
+            background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+            padding: '4px 10px', color: 'var(--text2)', fontSize: 11.5, cursor: 'pointer',
+          }}>Redétecter</button>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10 }}>
+          Détectés automatiquement au démarrage — embauchables comme employés (ils travaillent dans la zone de travail de la tâche, facturés par leur propre abonnement).
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+          {(s.cliAgents ?? []).map((a) => (
+            <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: a.found ? 1 : .55 }}>
+              <span>{a.label} <span style={{ color: 'var(--text3)' }}>· commande « {a.bin} »</span></span>
+              {a.found
+                ? <span style={{ color: '#30d158', fontWeight: 600 }}>✓ {a.version}</span>
+                : <span style={{ color: 'var(--text3)' }}>non détecté</span>}
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button onClick={save} style={{
           background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 9,

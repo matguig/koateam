@@ -45,6 +45,10 @@ export interface ModelTiering {
   ceo: string
   head: string
   specialist: string
+  /** Modèle du spécialiste Dev : un agent CLI local (Claude Code / Codex)
+   *  si détecté sur la machine — le dev de l'entreprise est alors
+   *  littéralement la CLI installée. */
+  devSpecialist?: string
 }
 
 export class Foundation {
@@ -152,7 +156,8 @@ export class Foundation {
         this.store.hire({
           workspace_id: ws.id, name: spec.name, title: spec.title, role: 'specialist',
           department: dept, manager_id: h.id, contract: 'mission', color: spec.color,
-          model: models.specialist, autonomy: 'ask_sensitive',
+          model: dept === 'Dev' && models.devSpecialist ? models.devSpecialist : models.specialist,
+          autonomy: 'ask_sensitive',
           scope: `Spécialiste ${dept} au scope étroit — escalade plutôt que deviner.`,
           character: [65, 55, 80, 70, 45, 65], perms: [`fs:zone ${dept}`], memory: [],
         })

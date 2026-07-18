@@ -15,6 +15,8 @@ const MODEL_LABELS: Record<string, string> = {
   'claude-sonnet-5': 'Sonnet · 3,00 $/Mtok',
   'claude-haiku-4-5-20251001': 'Haiku · 0,80 $/Mtok',
   'local-free': 'Local · 0,00 $/Mtok',
+  'claude-code': 'Claude Code · CLI locale',
+  'codex': 'Codex · CLI locale',
 }
 
 const MAIN_STATUS: Record<string, TaskStatus> = {
