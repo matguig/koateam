@@ -10,6 +10,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag de release (ex. v0.1.0) — créé par le workflow s''il n''existe pas'
+        required: true
+        default: 'v0.1.0'
 
 jobs:
   release:
@@ -102,8 +107,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: 'KoaTeam ${{ github.ref_name }}'
+          tagName: ${{ inputs.tag || github.ref_name }}
+          releaseName: 'KoaTeam ${{ inputs.tag || github.ref_name }}'
           releaseBody: 'Installeurs générés par la CI — voir RELEASE.md pour les notes de signature.'
           releaseDraft: false
           prerelease: false
