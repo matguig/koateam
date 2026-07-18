@@ -31,24 +31,50 @@ export class MockProvider implements Provider {
     const goal = messages[0]?.content ?? ''
     // Scénarios déterministes selon le rôle indiqué dans le prompt système :
     // un CEO décompose et délègue ; une ronde rapporte ; un exécutant produit.
+    const inputCharsAll = system.length + messages.reduce((n, m) => n + m.content.length, 0)
+    const single = (payload: unknown, outputTokens = 120): LlmResult => ({
+      content: JSON.stringify(payload),
+      inputTokens: Math.ceil(inputCharsAll / 4),
+      outputTokens,
+    })
+
     if (system.includes('RÔLE : RONDE')) {
-      const inputChars = system.length + messages.reduce((n, m) => n + m.content.length, 0)
       const facts = goal.split('\n').filter((l) => l.startsWith('- ')).map((l) => l.slice(2))
-      return {
-        content: JSON.stringify({
-          action: 'final',
-          report: `Ronde de suivi effectuée : ${facts.join(' · ')}. J'ai vérifié avec les HEADs — rien ne requiert votre intervention immédiate.`,
-        }),
-        inputTokens: Math.ceil(inputChars / 4),
-        outputTokens: 120,
-      }
+      return single({
+        action: 'final',
+        report: `Ronde de suivi effectuée : ${facts.join(' · ')}. J'ai vérifié avec les HEADs — rien ne requiert votre intervention immédiate.`,
+      })
     }
+
+    // Manager : répond lui-même, sauf si la question relève du propriétaire
+    if (system.includes('RÔLE : MANAGER')) {
+      return goal.includes('[USER]')
+        ? single({ action: 'escalate', args: { reason: 'Cette décision appartient au propriétaire — préférence stratégique.' } })
+        : single({ action: 'answer', args: { answer: `Réponds de façon pragmatique : livre au format markdown, périmètre minimal d'abord. Pas besoin de déranger le propriétaire pour ça.` } })
+    }
+
+    // Spécialiste : pose une question si le brief le demande et qu'aucune
+    // réponse n'a encore été reçue — sinon produit puis rapporte
+    const isSpecialist = system.includes('RÔLE : SPÉCIALISTE')
+    if (isSpecialist && goal.includes('[QUESTION]') && !goal.includes('Réponse reçue')) {
+      const q = goal.includes('[USER]')
+        ? 'Quel positionnement prix retenez-vous ? Décision du propriétaire requise. [USER]'
+        : 'Quel format de livrable préférez-vous : markdown ou PDF ?'
+      return single({ action: 'ask', args: { question: q } })
+    }
+
     const actions = system.includes('RÔLE : CEO')
-      ? [
-          { action: 'create_subtask', args: { title: `Analyse & production — ${goal.slice(0, 60)}`, department: 'Marketing' } },
-          { action: 'create_subtask', args: { title: `Vérification & livraison — ${goal.slice(0, 60)}`, department: 'Dev' } },
-          { action: 'final', report: `Tâche évaluée (simple, ~5 % du budget) et décomposée en 2 sous-tâches, assignées aux départements Marketing et Dev.` },
-        ]
+      ? goal.includes('[EMBAUCHE]')
+        ? [
+            { action: 'hire', args: { title: 'Testeur QA', department: 'QA', model: 'local-free' } },
+            { action: 'create_subtask', args: { title: `Tests — ${goal.slice(0, 50)}`, department: 'QA' } },
+            { action: 'final', report: `Tâche évaluée : nécessitait une compétence absente — j'ai recruté un Testeur QA sur le modèle local (0 $/Mtok, arbitrage coût) et je lui ai confié la sous-tâche.` },
+          ]
+        : [
+            { action: 'create_subtask', args: { title: `Analyse & production — ${goal.slice(0, 60)}`, department: 'Marketing' } },
+            { action: 'create_subtask', args: { title: `Vérification & livraison — ${goal.slice(0, 60)}`, department: 'Dev' } },
+            { action: 'final', report: `Tâche évaluée (simple, ~5 % du budget) et décomposée en 2 sous-tâches, assignées aux départements Marketing et Dev.` },
+          ]
       : [
           { action: 'tool', tool: 'write_file', args: { path: 'plan.md', content: `# Plan\n\nObjectif : ${goal}\n\n1. Analyser\n2. Produire\n3. Rapporter\n` } },
           { action: 'tool', tool: 'write_file', args: { path: 'livrable.md', content: `# Livrable\n\nTravail effectué pour : ${goal}\n\nRésultat produit par le worker éphémère.\n` } },
@@ -93,6 +119,9 @@ export class AnthropicProvider implements Provider {
 export function buildRegistry(anthropicKey?: string | null): Map<string, Provider> {
   const registry = new Map<string, Provider>()
   registry.set('mock', new MockProvider())
+  // Modèle « local » (0 $/Mtok) : simulé par le mock en attendant l'intégration
+  // d'un vrai runtime local (Ollama…) — le coût comptabilisé est bien 0.
+  registry.set('local', new MockProvider())
   const key = anthropicKey ?? process.env.ANTHROPIC_API_KEY
   if (key) registry.set('anthropic', new AnthropicProvider(key))
   return registry

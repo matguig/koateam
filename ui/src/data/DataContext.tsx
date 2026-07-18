@@ -23,7 +23,7 @@ const MAIN_STATUS: Record<string, TaskStatus> = {
 }
 const SUB_STATUS: Record<string, TaskStatus> = {
   todo: 'todo', in_progress: 'doing', review: 'review',
-  done_confirmed: 'done', paused_budget: 'paused',
+  done_confirmed: 'done', paused_budget: 'paused', blocked: 'blocked',
 }
 const LEDGER_LABELS: Record<string, [string, string]> = {
   consumption: ['Consommation', '#0a84ff'],
@@ -94,19 +94,31 @@ function project(s: DaemonState): Omit<Data, 'live' | 'actions' | 'traces' | 'ha
     taskStatusRaw[t.id] = t.status
     const done = t.subtasks.filter((x) => x.status === 'done_confirmed').length
     const active = !['archived', 'cancelled'].includes(t.status)
+    const subIds = new Set(t.subtasks.map((x) => x.id))
+    const taskQuestions = (s.questions ?? []).filter((q) => subIds.has(q.task_id))
+    const fmtWhen = (iso: string) => new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    const qa = taskQuestions.flatMap((q) => {
+      const asker = employees[q.asker_id]
+      const items = [{ emp: q.asker_id, who: asker?.name.split(' ')[0] ?? '?', when: fmtWhen(q.created_at), text: q.text }]
+      if (q.answer) {
+        const by = q.answered_by === 'user' ? null : employees[q.answered_by ?? '']
+        items.push({ emp: q.answered_by === 'user' ? 'vous' : q.answered_by ?? '', who: by?.name.split(' ')[0] ?? 'Vous', when: '', text: q.answer })
+      }
+      return items
+    })
     return {
       id: t.id, title: t.title, st: MAIN_STATUS[t.status] ?? 'todo',
       done, total: Math.max(t.subtasks.length, 1),
       alloc: t.budget_allocated, spent: t.spent,
       eng: active && t.status !== 'done' ? Math.max(0, t.budget_allocated - t.spent) : 0,
-      questions: 0,
+      questions: taskQuestions.filter((q) => q.status !== 'answered').length,
       desc: t.description, note: t.complexity_note || '(en attente d’évaluation du CEO)',
       objectives: t.objectives,
       tree: t.subtasks.map((sub) => ({
         emp: sub.assignee_id ?? '', title: sub.title,
         st: SUB_STATUS[sub.status] ?? 'todo', cost: subCost[sub.id] ?? 0, depth: 0,
       })),
-      deliverables: [], qa: [],
+      deliverables: [], qa,
     }
   })
 

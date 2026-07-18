@@ -103,9 +103,23 @@ export function openDb(dataDir: string): DatabaseSync {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS questions (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      task_id TEXT NOT NULL,             -- la sous-tâche bloquée
+      asker_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending_manager',  -- pending_manager | pending_user | answered
+      answer TEXT,
+      answered_by TEXT,                  -- id employé ou 'user'
+      created_at TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
     CREATE INDEX IF NOT EXISTS idx_ledger_task ON ledger(task_id);
     CREATE INDEX IF NOT EXISTS idx_traces_task ON traces(task_id);
+    CREATE INDEX IF NOT EXISTS idx_questions_task ON questions(task_id);
   `)
+  // Migration légère : colonne de référence libre sur l'inbox (ex. id de question)
+  try { db.exec(`ALTER TABLE inbox ADD COLUMN ref TEXT`) } catch { /* déjà présente */ }
   return db
 }

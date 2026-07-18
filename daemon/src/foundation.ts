@@ -41,10 +41,21 @@ interface FoundationSession {
   budget: number
 }
 
+export interface ModelTiering {
+  ceo: string
+  head: string
+  specialist: string
+}
+
 export class Foundation {
   private session: FoundationSession = { stage: 'project', name: '', mission: '', budget: 20 }
 
-  constructor(private store: Store) {}
+  constructor(
+    private store: Store,
+    /** Choix des modèles à l'embauche : vrais modèles Claude si le provider
+     *  Anthropic est configuré, provider de démonstration sinon. */
+    private pickModels: () => ModelTiering = () => ({ ceo: 'mock-fast', head: 'mock-fast', specialist: 'mock-fast' }),
+  ) {}
 
   reset(): void {
     this.session = { stage: 'project', name: '', mission: '', budget: 20 }
@@ -96,6 +107,7 @@ export class Foundation {
 
     const budget = input.budget ?? s.budget
     if (!Number.isFinite(budget) || budget <= 0) throw new Error('budget invalide')
+    const models = this.pickModels()
     const ws = this.store.createWorkspace({
       name: (input.name ?? s.name).trim() || 'Nouvelle entreprise',
       mission: (input.mission ?? s.mission).trim() || 'Mission à préciser avec le CEO.',
@@ -105,7 +117,7 @@ export class Foundation {
     const ceo = this.store.hire({
       workspace_id: ws.id, name: profile.name, title: 'CEO · Direction générale',
       role: 'ceo', department: null, manager_id: null, contract: 'permanent',
-      color: profile.color, model: 'mock-fast', autonomy: 'ask_sensitive',
+      color: profile.color, model: models.ceo, autonomy: 'ask_sensitive',
       scope: 'Décompose les tâches, structure les départements, arbitre les budgets et remonte l’essentiel.',
       character: input.traits ?? profile.traits,
       perms: ['org:embauche / licenciement', 'web:recherche web'],
@@ -131,7 +143,7 @@ export class Foundation {
       const h = this.store.hire({
         workspace_id: ws.id, name: head.name, title: `HEAD ${dept}`, role: 'head',
         department: dept, manager_id: ceo.id, contract: 'permanent', color: head.color,
-        model: 'mock-fast', autonomy: 'ask_sensitive',
+        model: models.head, autonomy: 'ask_sensitive',
         scope: `Pilote le département ${dept} : décompose, délègue, contrôle la qualité avant de faire remonter.`,
         character: [55, 50, 75, 65, 50, 70], perms: [`fs:zone ${dept}`, 'web:recherche web'], memory: [],
       })
@@ -140,7 +152,7 @@ export class Foundation {
         this.store.hire({
           workspace_id: ws.id, name: spec.name, title: spec.title, role: 'specialist',
           department: dept, manager_id: h.id, contract: 'mission', color: spec.color,
-          model: 'mock-fast', autonomy: 'ask_sensitive',
+          model: models.specialist, autonomy: 'ask_sensitive',
           scope: `Spécialiste ${dept} au scope étroit — escalade plutôt que deviner.`,
           character: [65, 55, 80, 70, 45, 65], perms: [`fs:zone ${dept}`], memory: [],
         })

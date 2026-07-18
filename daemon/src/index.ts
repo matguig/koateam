@@ -40,7 +40,14 @@ function main(): void {
   let watchdogAlerts = 0
 
   const runner = new InterventionRunner(store, providers, DATA_DIR, () => api.broadcast())
-  const foundation = new Foundation(store)
+  // Gamme de modèles à l'embauche (SPEC-V1 §3.2) : vrais modèles Claude dès
+  // que la clé Anthropic est configurée — sonnet pour la direction, haiku
+  // pour l'exécution — sinon provider de démonstration.
+  const foundation = new Foundation(store, () =>
+    providers.has('anthropic')
+      ? { ceo: 'claude-sonnet-5', head: 'claude-haiku-4-5-20251001', specialist: 'claude-haiku-4-5-20251001' }
+      : { ceo: 'mock-fast', head: 'mock-fast', specialist: 'mock-fast' },
+  )
   const rituals = new RitualScheduler(store, runner, () => api.broadcast())
   const api = createApi({
     store, runner, foundation, providers, startedAt: Date.now(),

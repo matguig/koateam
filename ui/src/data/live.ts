@@ -22,7 +22,13 @@ export interface DaemonTask {
 
 export interface DaemonInboxItem {
   id: string; type: string; status: string; title: string; body: string
-  task_id: string | null; employee_id: string | null; created_at: string
+  task_id: string | null; employee_id: string | null; ref: string | null; created_at: string
+}
+
+export interface DaemonQuestion {
+  id: string; task_id: string; asker_id: string; text: string
+  status: 'pending_manager' | 'pending_user' | 'answered'
+  answer: string | null; answered_by: string | null; created_at: string
 }
 
 export interface DaemonLedgerRow {
@@ -43,6 +49,7 @@ export interface DaemonState {
   inbox: DaemonInboxItem[]
   totals: Record<string, number>
   ledger: DaemonLedgerRow[]
+  questions: DaemonQuestion[]
   settings: DaemonSettings
 }
 
@@ -83,6 +90,10 @@ export const actions = {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ amount }),
     }),
   resolveInbox: (id: string) => fetch(`${DAEMON_URL}/inbox/${id}/resolve`, { method: 'POST' }),
+  answerQuestion: (id: string, answer: string) =>
+    fetch(`${DAEMON_URL}/questions/${id}/answer`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ answer }),
+    }),
   foundationMessage: async (text: string): Promise<FoundationReply> =>
     (await fetch(`${DAEMON_URL}/foundation/message`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }),

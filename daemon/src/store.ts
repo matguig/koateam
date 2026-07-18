@@ -29,7 +29,13 @@ export interface Task {
 export interface InboxItem {
   id: string; workspace_id: string; type: string; status: string
   title: string; body: string; task_id: string | null
-  employee_id: string | null; created_at: string
+  employee_id: string | null; ref: string | null; created_at: string
+}
+
+export interface Question {
+  id: string; workspace_id: string; task_id: string; asker_id: string
+  text: string; status: 'pending_manager' | 'pending_user' | 'answered'
+  answer: string | null; answered_by: string | null; created_at: string
 }
 
 export interface TraceEvent { at: string; kind: string; text: string }
@@ -163,13 +169,50 @@ export class Store {
   }
 
   // --- inbox ---
-  inboxAdd(i: { workspace_id: string; type: string; title: string; body?: string; task_id?: string | null; employee_id?: string | null }): InboxItem {
+  inboxAdd(i: { workspace_id: string; type: string; title: string; body?: string; task_id?: string | null; employee_id?: string | null; ref?: string | null }): InboxItem {
     const id = randomUUID()
     this.db.prepare(
-      `INSERT INTO inbox (id, workspace_id, type, title, body, task_id, employee_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(id, i.workspace_id, i.type, i.title, i.body ?? '', i.task_id ?? null, i.employee_id ?? null, now())
+      `INSERT INTO inbox (id, workspace_id, type, title, body, task_id, employee_id, ref, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(id, i.workspace_id, i.type, i.title, i.body ?? '', i.task_id ?? null, i.employee_id ?? null, i.ref ?? null, now())
     return this.db.prepare(`SELECT * FROM inbox WHERE id = ?`).get(id) as unknown as InboxItem
+  }
+
+  inboxResolveByRef(ref: string): void {
+    this.db.prepare(`UPDATE inbox SET status = 'answered' WHERE ref = ?`).run(ref)
+  }
+
+  // --- questions hiérarchiques ---
+  questionAdd(q: { workspace_id: string; task_id: string; asker_id: string; text: string }): Question {
+    const id = randomUUID()
+    this.db.prepare(
+      `INSERT INTO questions (id, workspace_id, task_id, asker_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(id, q.workspace_id, q.task_id, q.asker_id, q.text, now())
+    return this.questionGet(id)!
+  }
+
+  questionGet(id: string): Question | null {
+    return (this.db.prepare(`SELECT * FROM questions WHERE id = ?`).get(id) as Question | undefined) ?? null
+  }
+
+  questionSetStatus(id: string, status: Question['status']): void {
+    this.db.prepare(`UPDATE questions SET status = ? WHERE id = ?`).run(status, id)
+  }
+
+  questionAnswer(id: string, answer: string, answeredBy: string): void {
+    this.db.prepare(
+      `UPDATE questions SET status = 'answered', answer = ?, answered_by = ? WHERE id = ?`,
+    ).run(answer, answeredBy, id)
+  }
+
+  questionsForTask(taskId: string): Question[] {
+    return this.db.prepare(`SELECT * FROM questions WHERE task_id = ? ORDER BY created_at`).all(taskId) as unknown as Question[]
+  }
+
+  questionsAll(wsId: string, limit = 100): Question[] {
+    return this.db.prepare(
+      `SELECT * FROM questions WHERE workspace_id = ? ORDER BY created_at DESC LIMIT ?`,
+    ).all(wsId, limit) as unknown as Question[]
   }
 
   inboxList(wsId: string): InboxItem[] {

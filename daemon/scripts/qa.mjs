@@ -120,6 +120,61 @@ try {
   const resumed = await waitTask(t2)
   check('rallonge → reprise → done', resumed.status === 'done')
 
+  console.log('\n— Questions hiérarchiques (M3) —')
+  // 1. Le HEAD filtre : la question ne doit PAS atteindre l'utilisateur
+  const { id: q1 } = await (await post('/tasks', { title: 'Étude [QUESTION] filtrée par le HEAD', budget: 0.05 })).json()
+  const doneQ1 = await waitTask(q1, 45_000)
+  check('question filtrée : tâche livrée sans intervention utilisateur', doneQ1.status === 'done')
+  let stQ = await get('/state')
+  const filtered = stQ.questions.find((q) => q.text.includes('format de livrable'))
+  check('question répondue par le manager (pas « user »)', filtered?.status === 'answered' && filtered?.answered_by !== 'user')
+  check('aucun item inbox question pour une question filtrée', !stQ.inbox.some((i) => i.type === 'question' && i.status === 'pending'))
+  await post(`/tasks/${q1}/archive`)
+
+  // 2. Escalade au propriétaire : décision qui lui appartient
+  const { id: q2 } = await (await post('/tasks', { title: 'Pricing [QUESTION] [USER] décision propriétaire', budget: 0.05 })).json()
+  let userQ = null
+  for (let i = 0; i < 300 && !userQ; i++) {
+    stQ = await get('/state')
+    userQ = stQ.questions.find((q) => q.status === 'pending_user')
+    await sleep(100)
+  }
+  check('question escaladée jusqu’à l’utilisateur', !!userQ)
+  const inboxQ = stQ.inbox.find((i) => i.type === 'question' && i.ref === userQ?.id)
+  check('item inbox question avec référence', !!inboxQ)
+  r = await post(`/questions/${userQ.id}/answer`, { answer: '' })
+  check('réponse vide → 400', r.status === 400)
+  // Les 2 sous-tâches peuvent chacune escalader : on répond à toutes les
+  // questions en attente jusqu'à la livraison (comportement réel du patron)
+  let doneQ2 = null
+  for (let i = 0; i < 400 && !doneQ2; i++) {
+    const s = await get('/state')
+    for (const q of s.questions.filter((x) => x.status === 'pending_user')) {
+      await post(`/questions/${q.id}/answer`, { answer: 'Positionnement premium, 29 €/mois.' })
+    }
+    const t = s.tasks.find((t) => t.id === q2)
+    if (t?.status === 'done') doneQ2 = t
+    await sleep(150)
+  }
+  check('réponse(s) du propriétaire → travail repris → done', doneQ2?.status === 'done')
+  r = await post(`/questions/${userQ.id}/answer`, { answer: 'encore' })
+  check('double réponse → 409', r.status === 409)
+  check('item inbox question résolu automatiquement',
+    (await get('/state')).inbox.every((i) => i.ref !== userQ.id || i.status !== 'pending'))
+  await post(`/tasks/${q2}/archive`)
+
+  console.log('\n— Embauche par le CEO (M3) —')
+  const empBefore = (await get('/state')).employees.length
+  const { id: h1 } = await (await post('/tasks', { title: 'Audit [EMBAUCHE] compétence manquante', budget: 0.05 })).json()
+  const doneH1 = await waitTask(h1, 45_000)
+  check('tâche avec embauche livrée', doneH1.status === 'done')
+  const stH = await get('/state')
+  const hired = stH.employees.find((e) => e.department === 'QA' && e.role === 'specialist')
+  check('nouvelle recrue au département QA', stH.employees.length === empBefore + 1 && !!hired)
+  check('modèle économique choisi par le CEO (local, 0 $)', hired?.model === 'local-free')
+  check('sous-tâche assignée à la recrue', doneH1.subtasks.some((s) => s.assignee_id === hired?.id && s.status === 'done_confirmed'))
+  await post(`/tasks/${h1}/archive`)
+
   console.log('\n— Réouverture (« pas fini ») —')
   const { id: t4 } = await (await post('/tasks', { title: 'Réouverture QA', budget: 0.05 })).json()
   const done4 = await waitTask(t4)

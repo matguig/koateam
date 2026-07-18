@@ -30,6 +30,23 @@ const INBOX_ICONS: Record<string, [string, string]> = {
   info: ['ℹ', '#0a84ff'],
 }
 
+function QuestionAnswerBox({ questionId }: { questionId: string }) {
+  const data = useData()
+  const [text, setText] = useState('')
+  return (
+    <div style={{ display: 'flex', gap: 7, flex: 1 }}>
+      <input value={text} onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter' && text.trim()) void data.actions.answerQuestion(questionId, text.trim()) }}
+        placeholder="Votre réponse — le travail reprendra aussitôt…" style={{
+          flex: 1, background: 'var(--card2)', border: '1px solid var(--border)', borderRadius: 8,
+          padding: '7px 11px', color: 'var(--text)', fontSize: 12.5, outline: 'none',
+        }} />
+      <button style={btnPrimary} disabled={!text.trim()}
+        onClick={() => void data.actions.answerQuestion(questionId, text.trim())}>Répondre</button>
+    </div>
+  )
+}
+
 function LiveInbox() {
   const data = useData()
   return (
@@ -63,6 +80,7 @@ function LiveInbox() {
                   {emp ? `${emp.name} · ` : ''}{item.body}
                 </div>
                 <div style={{ display: 'flex', gap: 7 }}>
+                  {item.type === 'question' && item.ref && <QuestionAnswerBox questionId={item.ref} />}
                   {item.type === 'budget_pause_alert' && item.task_id && (
                     <button style={btnPrimary} onClick={async () => { await data.actions.topupTask(item.task_id!, 0.05); await data.actions.resolveInbox(item.id) }}>Rallonger de 0,05 $</button>
                   )}

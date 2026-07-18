@@ -1,6 +1,7 @@
 // Worker éphémère (SPEC-V1 §5.2) : un processus par intervention, tué à la fin.
 // Il ne détient AUCUNE clé API : chaque complétion LLM passe par le démon
 // (RPC JSON sur stdio), qui vérifie le budget avant l'appel et comptabilise après.
+// Le prompt système (identité, caractère, protocole) est construit par le démon.
 
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, normalize } from 'node:path'
@@ -11,7 +12,8 @@ interface Mission {
   id: string
   goal: string
   model: string
-  role: 'ceo' | 'specialist' | 'ronde'
+  role: 'ceo' | 'specialist' | 'ronde' | 'manager'
+  system: string
   workzone: string
 }
 
@@ -33,23 +35,6 @@ function rpc(method: string, params: unknown): Promise<RpcResponse> {
 function notify(method: string, params: unknown): void {
   process.stdout.write(JSON.stringify({ method, params }) + '\n')
 }
-
-const SYSTEM_SPECIALIST = `Tu es un employé virtuel KoaTeam. Tu travailles dans une zone de travail dédiée.
-Réponds UNIQUEMENT par un objet JSON, sans autre texte :
-- {"action":"tool","tool":"write_file","args":{"path":"...","content":"..."}} pour écrire un fichier
-- {"action":"tool","tool":"read_file","args":{"path":"..."}} pour lire un fichier
-- {"action":"tool","tool":"list_files","args":{}} pour lister la zone de travail
-- {"action":"final","report":"..."} quand la mission est terminée (rapport bref).`
-
-const SYSTEM_CEO = `RÔLE : CEO. Tu es le CEO virtuel d'un workspace KoaTeam. On te confie une tâche :
-évalue-la, découpe-la en sous-tâches et assigne chacune à un département.
-Réponds UNIQUEMENT par un objet JSON, sans autre texte :
-- {"action":"create_subtask","args":{"title":"...","department":"Marketing|Dev"}} pour déléguer une sous-tâche
-- {"action":"final","report":"..."} quand la décomposition est complète (note d'évaluation : complexité, % du budget).`
-
-const SYSTEM_RONDE = `RÔLE : RONDE. Tu es le CEO virtuel : c'est ta ronde de suivi périodique.
-On te donne l'état de l'entreprise ; produis un court rapport de situation pour le propriétaire.
-Réponds UNIQUEMENT par : {"action":"final","report":"..."}`
 
 function runTool(workzone: string, tool: string, args: Record<string, string>): string {
   const safe = (p: string) => {
@@ -73,7 +58,6 @@ function runTool(workzone: string, tool: string, args: Record<string, string>): 
 export async function runWorker(): Promise<void> {
   const mission: Mission = JSON.parse(process.env.KOATEAM_MISSION ?? '{}')
   mkdirSync(mission.workzone, { recursive: true })
-  const system = mission.role === 'ceo' ? SYSTEM_CEO : mission.role === 'ronde' ? SYSTEM_RONDE : SYSTEM_SPECIALIST
 
   const rl = createInterface({ input: process.stdin })
   rl.on('line', (line) => {
@@ -85,11 +69,11 @@ export async function runWorker(): Promise<void> {
   })
 
   const messages: ChatMessage[] = [{ role: 'user', content: mission.goal }]
-  const MAX_STEPS = 10
+  const MAX_STEPS = 12
 
   for (let step = 0; step < MAX_STEPS; step++) {
     notify('stats', { rss: process.memoryUsage().rss })
-    const res = await rpc('llm.complete', { model: mission.model, system, messages })
+    const res = await rpc('llm.complete', { model: mission.model, system: mission.system, messages })
 
     if (res.error === 'budget_exceeded') {
       notify('report', { status: 'paused_budget', report: `Budget épuisé à l'étape ${step + 1} — pause propre.` })
@@ -105,9 +89,11 @@ export async function runWorker(): Promise<void> {
 
     let parsed: { action: string; tool?: string; args?: Record<string, string>; report?: string }
     try {
-      parsed = JSON.parse(content)
+      // tolère un modèle qui entoure le JSON de texte ou de ```
+      const match = content.match(/\{[\s\S]*\}/)
+      parsed = JSON.parse(match ? match[0] : content)
     } catch {
-      messages.push({ role: 'user', content: 'Réponse invalide : réponds uniquement en JSON conforme au protocole.' })
+      messages.push({ role: 'user', content: 'Réponse invalide : réponds uniquement par un objet JSON conforme au protocole.' })
       continue
     }
 
@@ -115,11 +101,42 @@ export async function runWorker(): Promise<void> {
       notify('report', { status: 'done', report: parsed.report ?? '' })
       process.exit(0)
     }
-    if (parsed.action === 'create_subtask' && mission.role === 'ceo') {
-      const r = await rpc('task.create_subtask', parsed.args ?? {})
-      messages.push({ role: 'user', content: r.error ? `ERREUR : ${r.error}` : `OK, sous-tâche créée (${r.result?.subtaskId}).` })
+
+    // Spécialiste : escalade d'une question — l'intervention s'arrête proprement,
+    // la hiérarchie prend le relais (SPEC-V1 §3.5)
+    if (parsed.action === 'ask' && mission.role === 'specialist') {
+      notify('report', { status: 'blocked', report: parsed.args?.question ?? 'Question sans texte' })
+      process.exit(0)
+    }
+
+    // Manager : répondre à la question d'un subordonné, ou l'escalader
+    if (mission.role === 'manager') {
+      if (parsed.action === 'answer') {
+        notify('report', { status: 'answered', report: parsed.args?.answer ?? '' })
+        process.exit(0)
+      }
+      if (parsed.action === 'escalate') {
+        notify('report', { status: 'escalated', report: parsed.args?.reason ?? '' })
+        process.exit(0)
+      }
+    }
+
+    // CEO : embauche d'un spécialiste (arbitrage coût/modèle)
+    if (parsed.action === 'hire' && mission.role === 'ceo') {
+      const r = await rpc('org.hire', parsed.args ?? {})
+      messages.push({
+        role: 'user',
+        content: r.error ? `ERREUR embauche : ${r.error}` : `OK, ${r.result?.name} embauché(e) (${r.result?.model}).`,
+      })
       continue
     }
+
+    if (parsed.action === 'create_subtask' && mission.role === 'ceo') {
+      const r = await rpc('task.create_subtask', parsed.args ?? {})
+      messages.push({ role: 'user', content: r.error ? `ERREUR : ${r.error}` : `OK, sous-tâche créée et assignée à ${r.result?.assignee ?? '?'}.` })
+      continue
+    }
+
     if (parsed.action === 'tool' && parsed.tool) {
       let output: string
       try {
@@ -129,7 +146,10 @@ export async function runWorker(): Promise<void> {
       }
       notify('event', { kind: 'outil', text: `${parsed.tool} → ${output.slice(0, 120)}` })
       messages.push({ role: 'user', content: `Résultat de ${parsed.tool} : ${output}` })
+      continue
     }
+
+    messages.push({ role: 'user', content: `Action « ${parsed.action} » non autorisée pour ton rôle. Actions valides listées dans tes instructions.` })
   }
 
   notify('report', { status: 'failed', report: `Limite de ${MAX_STEPS} étapes atteinte sans rapport final.` })

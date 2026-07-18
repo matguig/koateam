@@ -28,7 +28,7 @@ export function createApi(ctx: ApiContext) {
       return {
         workspace: null, employees: [], tasks: [], inbox: [],
         totals: { consumption: 0, allocation: 0, release: 0, topup: 0 },
-        ledger: [], messages: [],
+        ledger: [], messages: [], questions: [],
         settings: settingsView(),
       }
     }
@@ -50,6 +50,7 @@ export function createApi(ctx: ApiContext) {
       totals: store.ledgerTotals(ws.id),
       ledger: store.ledgerRecent(ws.id),
       messages: store.messagesRecent(ws.id),
+      questions: store.questionsAll(ws.id),
       settings: settingsView(),
     }
   }
@@ -222,6 +223,20 @@ export function createApi(ctx: ApiContext) {
       const inboxAction = path.match(/^\/inbox\/([\w-]+)\/resolve$/)
       if (req.method === 'POST' && inboxAction) {
         store.inboxResolve(inboxAction[1])
+        broadcast()
+        return json(res, 200, { ok: true })
+      }
+
+      // Réponse du propriétaire à une question escaladée (SPEC-V1 §3.5)
+      const questionAction = path.match(/^\/questions\/([\w-]+)\/answer$/)
+      if (req.method === 'POST' && questionAction) {
+        const b = await readBody(req)
+        const answer = String(b.answer ?? '').trim()
+        if (!answer) return json(res, 400, { error: 'réponse vide' })
+        const q = store.questionGet(questionAction[1])
+        if (!q) return json(res, 404, { error: 'question inconnue' })
+        if (q.status === 'answered') return json(res, 409, { error: 'déjà répondue' })
+        runner.answerQuestion(q.id, answer)
         broadcast()
         return json(res, 200, { ok: true })
       }
