@@ -119,7 +119,16 @@ export function openDb(dataDir: string): DatabaseSync {
     CREATE INDEX IF NOT EXISTS idx_traces_task ON traces(task_id);
     CREATE INDEX IF NOT EXISTS idx_questions_task ON questions(task_id);
   `)
-  // Migration légère : colonne de référence libre sur l'inbox (ex. id de question)
-  try { db.exec(`ALTER TABLE inbox ADD COLUMN ref TEXT`) } catch { /* déjà présente */ }
+  // Migrations légères (colonnes ajoutées au fil des jalons)
+  const alters = [
+    `ALTER TABLE inbox ADD COLUMN ref TEXT`,
+    `ALTER TABLE employees ADD COLUMN hired_for TEXT`,      // tâche du contrat de mission (CDD recruté par le CEO)
+    `ALTER TABLE employees ADD COLUMN mission_report TEXT`, // rapport de fin de mission
+    `ALTER TABLE tasks ADD COLUMN review_feedback TEXT`,    // retour du manager en cas de rejet
+    `ALTER TABLE tasks ADD COLUMN retries INTEGER NOT NULL DEFAULT 0`,
+  ]
+  for (const sql of alters) {
+    try { db.exec(sql) } catch { /* colonne déjà présente */ }
+  }
   return db
 }

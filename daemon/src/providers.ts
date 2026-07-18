@@ -46,6 +46,21 @@ export class MockProvider implements Provider {
       })
     }
 
+    // Manager en revue : approuve, sauf premier passage d'un livrable marqué [REJET]
+    if (system.includes('RÔLE : REVUE')) {
+      return goal.includes('[REJET]') && goal.includes('Tentative n°1')
+        ? single({ action: 'reject', args: { feedback: 'Le livrable manque un plan détaillé — ajoute une section chiffrée avant de me le repasser.' } })
+        : single({ action: 'approve', args: { comment: 'Validé — bon travail, je fais remonter.' } })
+    }
+
+    // Rapport de fin de mission d'un CDD
+    if (system.includes('RÔLE : RAPPORT DE MISSION')) {
+      return single({
+        action: 'final',
+        report: 'Rapport de mission : objectifs atteints, livrables transmis à mon manager. Recommandation : industrialiser les tests pour la suite. Merci pour la confiance — réveillable au besoin.',
+      })
+    }
+
     // Manager : répond lui-même, sauf si la question relève du propriétaire
     if (system.includes('RÔLE : MANAGER')) {
       return goal.includes('[USER]')

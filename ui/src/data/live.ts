@@ -8,6 +8,7 @@ export interface DaemonEmployee {
   department: string | null; manager_id: string | null; contract: string
   status: string; color: string; model: string; scope: string
   character: number[]; perms: string[]; memory: string[]; spent: number
+  hired_for: string | null; mission_report: string | null
 }
 
 export interface DaemonSubtask {
@@ -99,6 +100,7 @@ export const actions = {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ amount }),
     }),
   resolveInbox: (id: string) => fetch(`${DAEMON_URL}/inbox/${id}/resolve`, { method: 'POST' }),
+  wakeEmployee: (id: string) => fetch(`${DAEMON_URL}/employees/${id}/wake`, { method: 'POST' }),
   answerQuestion: (id: string, answer: string) =>
     fetch(`${DAEMON_URL}/questions/${id}/answer`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ answer }),

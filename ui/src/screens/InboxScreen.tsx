@@ -27,6 +27,7 @@ const INBOX_ICONS: Record<string, [string, string]> = {
   deliverable_review: ['✓', '#30d158'],
   question: ['?', '#bf5af2'],
   morning_report: ['☕', '#bf5af2'],
+  mission_report: ['📋', '#64d2ff'],
   info: ['ℹ', '#0a84ff'],
 }
 

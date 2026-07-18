@@ -12,7 +12,7 @@ interface Mission {
   id: string
   goal: string
   model: string
-  role: 'ceo' | 'specialist' | 'ronde' | 'manager'
+  role: 'ceo' | 'specialist' | 'ronde' | 'manager' | 'review' | 'farewell'
   system: string
   workzone: string
 }
@@ -117,6 +117,18 @@ export async function runWorker(): Promise<void> {
       }
       if (parsed.action === 'escalate') {
         notify('report', { status: 'escalated', report: parsed.args?.reason ?? '' })
+        process.exit(0)
+      }
+    }
+
+    // Manager en revue : approuver le livrable d'un subordonné, ou le rejeter
+    if (mission.role === 'review') {
+      if (parsed.action === 'approve') {
+        notify('report', { status: 'approved', report: parsed.args?.comment ?? 'Validé.' })
+        process.exit(0)
+      }
+      if (parsed.action === 'reject') {
+        notify('report', { status: 'rejected', report: parsed.args?.feedback ?? 'À retravailler.' })
         process.exit(0)
       }
     }

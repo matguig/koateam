@@ -206,6 +206,8 @@ export function createApi(ctx: ApiContext) {
             store.ledgerAppend({ workspace_id: ws.id, type: 'release', amount: remaining, task_id: id })
           }
           store.updateTask(id, { status: 'archived' })
+          // Fin de contrat des CDD recrutés pour cette tâche (décision 11)
+          runner.onTaskArchived(id)
         }
         if (action === 'reopen') {
           if (!['done', 'paused_budget'].includes(task.status)) {
@@ -230,6 +232,17 @@ export function createApi(ctx: ApiContext) {
       const inboxAction = path.match(/^\/inbox\/([\w-]+)\/resolve$/)
       if (req.method === 'POST' && inboxAction) {
         store.inboxResolve(inboxAction[1])
+        broadcast()
+        return json(res, 200, { ok: true })
+      }
+
+      // Réveil d'un employé archivé (décision 11 : archivage réveillable)
+      const wakeAction = path.match(/^\/employees\/([\w-]+)\/wake$/)
+      if (req.method === 'POST' && wakeAction) {
+        const emp = store.getEmployee(wakeAction[1])
+        if (!emp) return json(res, 404, { error: 'employé inconnu' })
+        if (emp.status !== 'archived') return json(res, 409, { error: 'déjà en poste' })
+        store.wakeEmployee(emp.id)
         broadcast()
         return json(res, 200, { ok: true })
       }

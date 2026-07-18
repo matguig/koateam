@@ -24,6 +24,7 @@ export interface Employee {
   perms: string[]
   memory: string[]
   archivedNote?: string
+  missionReport?: string | null
 }
 
 export interface SubTaskNode {

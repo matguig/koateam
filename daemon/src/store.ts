@@ -16,6 +16,7 @@ export interface Employee {
   manager_id: string | null; contract: string; status: string
   color: string; model: string; autonomy: string; scope: string
   character: number[]; perms: string[]; memory: string[]
+  hired_for: string | null; mission_report: string | null
 }
 
 export interface Task {
@@ -23,6 +24,7 @@ export interface Task {
   title: string; description: string; objectives: [string, boolean][]
   status: string; assignee_id: string | null; supervisor_id: string | null
   budget_allocated: number; complexity_note: string; created_by: string
+  review_feedback: string | null; retries: number
   created_at: string; updated_at: string
 }
 
@@ -77,16 +79,24 @@ export class Store {
     return r ? this.rowToEmployee(r) : null
   }
 
-  hire(e: Omit<Employee, 'id' | 'status'> & { id?: string }): Employee {
+  hire(e: Omit<Employee, 'id' | 'status' | 'hired_for' | 'mission_report'> & { id?: string; hired_for?: string | null }): Employee {
     const id = e.id ?? randomUUID()
     this.db.prepare(
       `INSERT INTO employees (id, workspace_id, name, title, role, department, manager_id, contract,
-        status, color, model, autonomy, scope, character, perms, memory, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status, color, model, autonomy, scope, character, perms, memory, hired_for, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(id, e.workspace_id, e.name, e.title, e.role, e.department, e.manager_id, e.contract,
       e.color, e.model, e.autonomy, e.scope,
-      JSON.stringify(e.character), JSON.stringify(e.perms), JSON.stringify(e.memory), now())
+      JSON.stringify(e.character), JSON.stringify(e.perms), JSON.stringify(e.memory), e.hired_for ?? null, now())
     return this.getEmployee(id)!
+  }
+
+  archiveEmployee(id: string, missionReport: string): void {
+    this.db.prepare(`UPDATE employees SET status = 'archived', mission_report = ? WHERE id = ?`).run(missionReport, id)
+  }
+
+  wakeEmployee(id: string): void {
+    this.db.prepare(`UPDATE employees SET status = 'active' WHERE id = ?`).run(id)
   }
 
   // --- tâches ---
@@ -125,7 +135,7 @@ export class Store {
     return this.getTask(id)!
   }
 
-  updateTask(id: string, fields: Partial<Pick<Task, 'status' | 'budget_allocated' | 'complexity_note' | 'assignee_id'>>): void {
+  updateTask(id: string, fields: Partial<Pick<Task, 'status' | 'budget_allocated' | 'complexity_note' | 'assignee_id' | 'review_feedback' | 'retries'>>): void {
     const sets: string[] = []
     const vals: unknown[] = []
     for (const [k, v] of Object.entries(fields)) { sets.push(`${k} = ?`); vals.push(v) }

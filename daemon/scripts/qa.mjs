@@ -212,7 +212,36 @@ try {
   check('nouvelle recrue au département QA', stH.employees.length === empBefore + 1 && !!hired)
   check('modèle économique choisi par le CEO (local, 0 $)', hired?.model === 'local-free')
   check('sous-tâche assignée à la recrue', doneH1.subtasks.some((s) => s.assignee_id === hired?.id && s.status === 'done_confirmed'))
+
+  console.log('\n— Revue qualitative par le manager (M4) —')
+  const { id: rj } = await (await post('/tasks', { title: 'Brouillon [REJET] à retravailler', budget: 0.05 })).json()
+  const doneRj = await waitTask(rj, 60_000)
+  check('livrable rejeté puis retravaillé → done', doneRj.status === 'done')
+  const stRj = await get('/state')
+  const rejMsg = stRj.messages.find((m) => String(m.content).startsWith('À retravailler'))
+  check('feedback de rejet transmis au spécialiste', !!rejMsg)
+  const reviewTraces = (await get('/traces')).filter((t) => t.trigger === 'Revue d’une sous-tâche')
+  check('interventions de revue journalisées', reviewTraces.length >= 2)
+  await post(`/tasks/${rj}/archive`)
+
+  console.log('\n— Fin de contrat de mission (M4) —')
   await post(`/tasks/${h1}/archive`)
+  let archivedHire = null
+  for (let i = 0; i < 300 && !archivedHire; i++) {
+    const s = await get('/state')
+    const e = s.employees.find((x) => x.id === hired.id)
+    if (e?.status === 'archived') archivedHire = e
+    await sleep(100)
+  }
+  check('CDD archivé après l’archivage de sa tâche', !!archivedHire)
+  check('rapport de mission rédigé et conservé', String(archivedHire?.mission_report ?? '').includes('Rapport de mission'))
+  check('item inbox « rapport de mission »', (await get('/state')).inbox.some((i) => i.type === 'mission_report'))
+  r = await post(`/employees/${hired.id}/wake`)
+  check('réveil de l’archivé → 200', r.status === 200)
+  check('employé de nouveau actif, mémoire intacte',
+    (await get('/state')).employees.find((x) => x.id === hired.id)?.status === 'active')
+  r = await post(`/employees/${hired.id}/wake`)
+  check('double réveil → 409', r.status === 409)
 
   console.log('\n— Réouverture (« pas fini ») —')
   const { id: t4 } = await (await post('/tasks', { title: 'Réouverture QA', budget: 0.05 })).json()

@@ -33,9 +33,10 @@ export function EmployeeDrawer({ empId, onClose }: { empId: string; onClose: () 
                 padding: '2px 9px', fontSize: 11, fontVariantNumeric: 'tabular-nums',
               }}>{emp.model}</span>
               <span style={{
-                background: 'color-mix(in srgb, #30d158 14%, transparent)', color: '#30d158',
+                background: `color-mix(in srgb, ${emp.archived ? '#8e8e93' : '#30d158'} 14%, transparent)`,
+                color: emp.archived ? '#8e8e93' : '#30d158',
                 borderRadius: 12, padding: '2px 9px', fontSize: 11, fontWeight: 600,
-              }}>En poste</span>
+              }}>{emp.archived ? 'Archivé · réveillable' : 'En poste'}</span>
             </div>
           </div>
           <button className="hov-text" onClick={onClose} style={{
@@ -62,6 +63,15 @@ export function EmployeeDrawer({ empId, onClose }: { empId: string; onClose: () 
           ))}
         </div>
 
+        {emp.missionReport && (
+          <>
+            <SectionLabel style={{ marginBottom: 6 }}>Rapport de fin de mission</SectionLabel>
+            <p style={{
+              margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text2)',
+              background: 'var(--card2)', borderRadius: 10, padding: '10px 12px',
+            }}>{emp.missionReport}</p>
+          </>
+        )}
         <SectionLabel style={{ marginBottom: 6 }}>Scope du poste</SectionLabel>
         <p style={{ margin: '0 0 18px', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text2)' }}>{emp.scope}</p>
 

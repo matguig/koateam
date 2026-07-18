@@ -78,6 +78,7 @@ function project(s: DaemonState): Omit<Data, 'live' | 'actions' | 'traces' | 'ha
       color: e.color, model: MODEL_LABELS[e.model] ?? e.model,
       spend: e.spent, load: `${activeLoad[e.id] ?? 0} sous-tâche(s)`,
       traits: e.character, scope: e.scope, perms: e.perms, memory: e.memory,
+      missionReport: e.mission_report,
     }
   }
 

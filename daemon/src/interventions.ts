@@ -12,7 +12,7 @@ import type { Provider } from './providers.js'
 import type { Employee, Store, Task, TraceEvent } from './store.js'
 
 interface QueueItem {
-  kind: 'plan' | 'execute' | 'ritual' | 'answer'
+  kind: 'plan' | 'execute' | 'ritual' | 'answer' | 'review' | 'farewell'
   taskId: string | null
   employeeId: string
   brief?: string
@@ -78,7 +78,7 @@ export class InterventionRunner {
     // 'in_progress' compte comme à reprendre : après un crash, le worker est
     // mort mais la sous-tâche est restée marquée en cours. Les 'blocked'
     // attendent leur réponse — on ne les force pas.
-    const pending = subs.filter((s) => ['todo', 'in_progress', 'paused_budget'].includes(s.status))
+    const pending = subs.filter((s) => ['todo', 'in_progress', 'paused_budget', 'review'].includes(s.status))
     const blocked = subs.filter((s) => s.status === 'blocked')
     if (pending.length === 0 && blocked.length === 0) {
       this.submitTask(taskId)
@@ -175,6 +175,23 @@ ${PROTOCOL_HEADER}
 - {"action":"escalate","args":{"reason":"..."}} pour transmettre au propriétaire`
     }
 
+    if (item.kind === 'review') {
+      return `RÔLE : REVUE. ${base}
+Un membre de ton équipe déclare sa sous-tâche terminée : contrôle la qualité avant de la faire remonter
+(SPEC : le manager confirme, relance ou corrige). Rejette UNIQUEMENT si le livrable est clairement insuffisant.
+${PROTOCOL_HEADER}
+- {"action":"approve","args":{"comment":"..."}} pour confirmer la sous-tâche
+- {"action":"reject","args":{"feedback":"..."}} pour la renvoyer avec un retour actionnable`
+    }
+
+    if (item.kind === 'farewell') {
+      return `RÔLE : RAPPORT DE MISSION. ${base}
+Ton contrat de mission s'achève : rédige ton rapport de fin de mission (réalisations, apprentissages,
+recommandations pour la suite). Il sera archivé avec ta mémoire — tu restes réveillable.
+${PROTOCOL_HEADER}
+- {"action":"final","report":"..."}`
+    }
+
     return `RÔLE : SPÉCIALISTE. ${base}
 Tu travailles dans une zone de travail cloisonnée. Produis, puis rapporte. Si une information indispensable te manque
 et que deviner serait risqué, pose UNE question à ton manager plutôt que d'inventer.
@@ -187,7 +204,12 @@ ${PROTOCOL_HEADER}
   }
 
   private goalFor(item: QueueItem, task: Task | null, mainTask: Task | null): string {
-    if (item.kind === 'ritual') return item.brief ?? ''
+    if (item.kind === 'ritual' || item.kind === 'farewell') return item.brief ?? ''
+    if (item.kind === 'review' && task) {
+      const assignee = task.assignee_id ? this.store.getEmployee(task.assignee_id) : null
+      return `Sous-tâche « ${task.title} » (tâche « ${mainTask?.title ?? '?'} ») — Tentative n°${task.retries + 1}.
+${assignee?.name ?? '?'} rapporte : ${item.brief ?? '(rapport vide)'}`
+    }
     if (item.kind === 'plan' && task) return `${task.title}\n\n${task.description}`
     if (item.kind === 'answer' && item.questionId) {
       const q = this.store.questionGet(item.questionId)
@@ -195,13 +217,16 @@ ${PROTOCOL_HEADER}
       const sub = q ? this.store.getTask(q.task_id) : null
       return `Question de ${asker?.name ?? '?'} (sous-tâche « ${sub?.title ?? '?'} », tâche « ${mainTask?.title ?? '?'} ») :\n${q?.text ?? ''}`
     }
-    // execute : le brief + les réponses déjà reçues aux questions de cette sous-tâche
+    // execute : le brief + les réponses aux questions + le feedback de revue éventuel
     const answered = task
       ? this.store.questionsForTask(task.id)
           .filter((q) => q.status === 'answered')
           .map((q) => `Réponse reçue à ta question « ${q.text.slice(0, 80)} » : ${q.answer}`)
       : []
-    return [`${task!.title} (tâche parente : ${mainTask!.title})`, ...answered].join('\n')
+    const feedback = task?.review_feedback
+      ? [`Retour de ton manager (version précédente rejetée) : ${task.review_feedback}`]
+      : []
+    return [`${task!.title} (tâche parente : ${mainTask!.title})`, ...answered, ...feedback].join('\n')
   }
 
   private async run(item: QueueItem): Promise<void> {
@@ -209,7 +234,8 @@ ${PROTOCOL_HEADER}
     const employee = this.store.getEmployee(item.employeeId)
     if (!ws || !employee) return
     const task = item.taskId ? this.store.getTask(item.taskId) : null
-    if (item.kind !== 'ritual' && !task) return
+    // rondes et fins de mission n'ont pas de tâche associée
+    if (!task && item.kind !== 'ritual' && item.kind !== 'farewell') return
 
     // Le travail est budgété sur la tâche PRINCIPALE (comptabilité d'engagement) ;
     // une ronde est budgétée sur l'enveloppe du workspace.
@@ -226,7 +252,11 @@ ${PROTOCOL_HEADER}
     let tokensIn = 0
     let tokensOut = 0
     let cost = 0
-    const trigger = { plan: 'Nouvelle tâche à planifier', execute: 'Sous-tâche assignée', ritual: 'Ronde managériale', answer: 'Question d’un subordonné' }[item.kind]
+    const trigger = {
+      plan: 'Nouvelle tâche à planifier', execute: 'Sous-tâche assignée',
+      ritual: 'Ronde managériale', answer: 'Question d’un subordonné',
+      review: 'Revue d’une sous-tâche', farewell: 'Fin de contrat de mission',
+    }[item.kind]
     const traceId = this.store.traceStart({
       workspace_id: ws.id, employee_id: employee.id, task_id: task?.id ?? null, trigger,
     })
@@ -245,7 +275,7 @@ ${PROTOCOL_HEADER}
           id: task?.id ?? 'ritual',
           goal: this.goalFor(item, task, mainTask),
           model: employee.model,
-          role: item.kind === 'plan' ? 'ceo' : item.kind === 'ritual' ? 'ronde' : item.kind === 'answer' ? 'manager' : 'specialist',
+          role: { plan: 'ceo', ritual: 'ronde', answer: 'manager', review: 'review', farewell: 'farewell', execute: 'specialist' }[item.kind],
           system: this.systemFor(item, employee, mainTask),
           workzone: join(this.dataDir, 'workzones', mainTask?.id ?? '_rituels'),
         }),
@@ -295,6 +325,7 @@ ${PROTOCOL_HEADER}
               scope: `${title || 'Spécialiste'} — recruté(e) par ${employee.name} pour « ${mainTask?.title ?? ws.name} ».`,
               character: [55, 50, 70, 60, 45, 60],
               perms: [`fs:zone ${dept}`], memory: [],
+              hired_for: mainTask?.id ?? null,
             })
             this.store.messageAdd({
               workspace_id: ws.id, from_id: employee.id, to_id: hired.id,
@@ -380,12 +411,79 @@ ${PROTOCOL_HEADER}
       if (outcome === 'done' && report) {
         this.store.messageAdd({ workspace_id: ws.id, from_id: employee.id, to_id: 'user', content: report })
       }
+    } else if (item.kind === 'farewell') {
+      this.afterFarewell(ws.id, employee, report)
     } else if (item.kind === 'answer') {
       this.afterAnswer(item, ws.id, employee, outcome, report)
+    } else if (item.kind === 'review' && task && mainTask) {
+      this.afterReview(ws.id, task, mainTask, employee, outcome, report)
     } else if (task && mainTask) {
       this.afterIntervention(item, ws.id, task, mainTask, employee, outcome, report)
     }
     this.onChange()
+  }
+
+  /** Fin de contrat : rapport archivé avec l'employé — réveillable (décision 11). */
+  private afterFarewell(wsId: string, employee: Employee, report: string): void {
+    const finalReport = report || `Mission terminée. (rapport non produit)`
+    this.store.archiveEmployee(employee.id, finalReport)
+    this.store.inboxAdd({
+      workspace_id: wsId, type: 'mission_report',
+      title: `${employee.name} a terminé sa mission — rapport archivé`,
+      body: finalReport.slice(0, 400),
+      employee_id: employee.id,
+    })
+  }
+
+  /** Issue d'une revue de sous-tâche par le manager (SPEC-V1 §3.5). */
+  private afterReview(wsId: string, task: Task, mainTask: Task, manager: Employee, outcome: string, report: string): void {
+    if (outcome === 'rejected' && task.assignee_id) {
+      this.store.updateTask(task.id, { status: 'todo', review_feedback: report, retries: task.retries + 1 })
+      this.store.messageAdd({ workspace_id: wsId, from_id: manager.id, to_id: task.assignee_id, task_id: task.id, content: `À retravailler : ${report}` })
+      this.enqueue({ kind: 'execute', taskId: task.id, employeeId: task.assignee_id })
+      return
+    }
+    // approuvée (ou revue en échec : on ne bloque pas la chaîne pour autant)
+    this.store.updateTask(task.id, { status: 'done_confirmed' })
+    if (task.assignee_id && outcome === 'approved' && report) {
+      this.store.messageAdd({ workspace_id: wsId, from_id: manager.id, to_id: task.assignee_id, task_id: task.id, content: report })
+    }
+    this.checkMainCompletion(wsId, mainTask)
+  }
+
+  /** Tous les livrables confirmés → la tâche principale passe à « done ». */
+  private checkMainCompletion(wsId: string, mainTask: Task): void {
+    const subs = this.store.subtasksOf(mainTask.id)
+    if (subs.length === 0 || !subs.every((s) => s.status === 'done_confirmed')) return
+    this.store.updateTask(mainTask.id, { status: 'done' })
+    const ceo = this.store.listEmployees(wsId).find((e) => e.role === 'ceo')
+    const spent = this.store.spentOnTask(mainTask.id)
+    this.store.inboxAdd({
+      workspace_id: wsId, type: 'deliverable_review',
+      title: `Tâche « ${mainTask.title} » terminée — livrable à vérifier`,
+      body: `Coût final ${spent.toFixed(4)} $ sur ${mainTask.budget_allocated.toFixed(2)} $ alloués. Archivez pour restituer le reliquat, ou rouvrez.`,
+      task_id: mainTask.id, employee_id: ceo?.id,
+    })
+    if (ceo) {
+      this.store.messageAdd({
+        workspace_id: wsId, from_id: ceo.id, to_id: 'user', task_id: mainTask.id,
+        content: `On a fini « ${mainTask.title} » — livrable prêt à être vérifié dans votre inbox.`,
+      })
+    }
+  }
+
+  /** À l'archivage d'une tâche : fin de contrat des CDD recrutés pour elle. */
+  onTaskArchived(taskId: string): void {
+    const ws = this.store.getWorkspace()
+    if (!ws) return
+    const task = this.store.getTask(taskId)
+    for (const e of this.store.listEmployees(ws.id)) {
+      if (e.contract !== 'mission' || e.status !== 'active' || e.hired_for !== taskId) continue
+      this.enqueue({
+        kind: 'farewell', taskId: null, employeeId: e.id,
+        brief: `Ta mission « ${task?.title ?? taskId} » est terminée et archivée par le propriétaire. Rédige ton rapport de fin de mission.`,
+      })
+    }
   }
 
   /** Sous-tâche exécutée par un agent CLI local (Claude Code / Codex). */
@@ -524,32 +622,27 @@ ${PROTOCOL_HEADER}
       return
     }
 
-    // Sous-tâche exécutée : revue par le superviseur (mécanique en M3 léger —
-    // la confirmation qualitative par le manager viendra avec le vrai provider)
-    this.store.updateTask(task.id, { status: outcome === 'done' ? 'done_confirmed' : 'todo' })
-    if (task.supervisor_id && outcome === 'done') {
+    // Sous-tâche exécutée : revue QUALITATIVE par le superviseur (SPEC §3.5) —
+    // le manager confirme, ou rejette avec un retour actionnable.
+    if (outcome !== 'done') {
+      this.store.updateTask(task.id, { status: 'todo' })
+      return
+    }
+    if (task.supervisor_id) {
       this.store.messageAdd({
         workspace_id: wsId, from_id: employee.id, to_id: task.supervisor_id, task_id: task.id,
         content: report,
       })
     }
-    const subs = this.store.subtasksOf(mainTask.id)
-    if (subs.length > 0 && subs.every((s) => s.status === 'done_confirmed')) {
-      this.store.updateTask(mainTask.id, { status: 'done' })
-      const ceo = this.store.listEmployees(wsId).find((e) => e.role === 'ceo')
-      const spent = this.store.spentOnTask(mainTask.id)
-      this.store.inboxAdd({
-        workspace_id: wsId, type: 'deliverable_review',
-        title: `Tâche « ${mainTask.title} » terminée — livrable à vérifier`,
-        body: `Coût final ${spent.toFixed(4)} $ sur ${mainTask.budget_allocated.toFixed(2)} $ alloués. Archivez pour restituer le reliquat, ou rouvrez.`,
-        task_id: mainTask.id, employee_id: ceo?.id,
-      })
-      if (ceo) {
-        this.store.messageAdd({
-          workspace_id: wsId, from_id: ceo.id, to_id: 'user', task_id: mainTask.id,
-          content: `On a fini « ${mainTask.title} » — livrable prêt à être vérifié dans votre inbox.`,
-        })
-      }
+    const supervisor = task.supervisor_id ? this.store.getEmployee(task.supervisor_id) : null
+    // Garde anti-boucle : après 2 rejets, on confirme d'office (le propriétaire
+    // tranchera à la vérification du livrable final)
+    if (!supervisor || supervisor.id === employee.id || task.retries >= 2) {
+      this.store.updateTask(task.id, { status: 'done_confirmed' })
+      this.checkMainCompletion(wsId, mainTask)
+      return
     }
+    this.store.updateTask(task.id, { status: 'review' })
+    this.enqueue({ kind: 'review', taskId: task.id, employeeId: supervisor.id, brief: report })
   }
 }

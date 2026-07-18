@@ -144,13 +144,23 @@ export function OrgScreen({ onOpenEmployee }: { onOpenEmployee: (id: string) => 
           {archived.map((e) => (
             <div key={e.id} style={{
               background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 11,
-              padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'center', maxWidth: 420, opacity: .55, marginBottom: 6,
+              padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'center', maxWidth: 480, opacity: .55, marginBottom: 6,
             }}>
               <Avatar color="#8e8e93" init={initials(e.name)} size={32} fontSize={11} />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12.5 }}>{e.name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text2)' }}>{e.title} · dépensé {fmt(e.spend)}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {e.title} · dépensé {fmt(e.spend)}{e.missionReport ? ' · rapport de mission archivé' : ''}
+                </div>
               </div>
+              <button className="hov-text" onClick={() => onOpenEmployee(e.id)} style={{
+                background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                padding: '5px 11px', color: 'var(--text2)', fontSize: 11.5, cursor: 'pointer', flexShrink: 0,
+              }}>Fiche</button>
+              <button className="hov-text" onClick={() => data.actions.wakeEmployee(e.id)} style={{
+                background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                padding: '5px 11px', color: 'var(--text2)', fontSize: 11.5, cursor: 'pointer', flexShrink: 0,
+              }}>Réveiller</button>
             </div>
           ))}
         </div>
