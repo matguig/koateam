@@ -6,7 +6,7 @@ Un workspace = une entreprise : un CEO recruté via un cabinet virtuel (jauges d
 
 ## État du projet
 
-Conception terminée · spike M0 (GO) · M1 (socle) · **M2 livré** : fondation conversationnelle via le cabinet de recrutement, rituels à deux étages (ronde technique gratuite + ronde managériale + rapport du matin), réglages (clé Anthropic à chaud, rythmes) — prochaine étape : M3 (vrais managers LLM, questions hiérarchiques, embauche par le CEO).
+**Tous les jalons V1 livrés** : M0 spike (GO) · M1 socle (SQLite, cascade, UI branchée) · M2 vie (fondation conversationnelle, rituels, réglages) · M3 cerveaux (questions hiérarchiques, embauche par le CEO, prompts riches, agents CLI Claude Code/Codex) · M4 (revue qualitative par les managers, fins de mission CDD, app barre de menu) · M5 distribution (release taggée 3 OS, auto-update signé, signature macOS prête à activer — voir [`RELEASE.md`](RELEASE.md)). QA : 59 vérifications en CI + endurance nightly.
 
 | Document / dossier | Contenu |
 |---|---|

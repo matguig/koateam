@@ -5,15 +5,30 @@ use tauri::tray::TrayIconBuilder;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 
+/// Vérifie et installe silencieusement les mises à jour publiées sur
+/// GitHub Releases (latest.json signé par la clé updater). Sans release
+/// disponible ou hors ligne : échec silencieux, l'app continue.
+fn check_updates(app: tauri::AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        use tauri_plugin_updater::UpdaterExt;
+        let Ok(updater) = app.updater() else { return };
+        if let Ok(Some(update)) = updater.check().await {
+            let _ = update.download_and_install(|_, _| {}, || {}).await;
+        }
+    });
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Le démon (sidecar empaqueté) est lancé avec l'app et survit à la
             // fermeture de la fenêtre — l'entreprise tourne 24/7 (SPEC §5.2).
             if !cfg!(debug_assertions) {
                 let sidecar = app.shell().sidecar("daemon")?;
                 let (_events, _child) = sidecar.spawn()?;
+                check_updates(app.handle().clone());
             }
 
             // Icône barre de menu : la présence permanente de l'entreprise

@@ -30,6 +30,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/daemon"]
+    "externalBin": [
+      "binaries/daemon"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/matguig/koateam/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU2NjUzMzg5OEFCNEIxMTkKUldRWnNiU0tpVE5sVnNpa2RkNW1XU1BIaXFoNnFoQ3k1cFJOeWJablBINjhkbEdhR0c0SHR1aUMK"
+    }
   }
 }

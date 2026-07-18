@@ -1,0 +1,111 @@
+name: Release
+
+# Publier une version : git tag vX.Y.Z && git push origin vX.Y.Z
+# → installeurs 3 OS sur GitHub Releases (+ latest.json signé pour
+#   l'auto-update si le secret TAURI_SIGNING_PRIVATE_KEY est configuré ;
+#   macOS signé/notarizé si les secrets APPLE_* sont configurés).
+# Voir RELEASE.md pour la configuration des secrets.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            bundles: deb
+          - os: macos-latest
+            bundles: app,dmg
+          - os: windows-latest
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Dépendances système Linux (webkit2gtk…)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Build UI
+        working-directory: ui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build démon + binaire sidecar (Node SEA)
+        working-directory: daemon
+        shell: bash
+        run: |
+          npm ci
+          npm run build
+          npm run bundle
+          TRIPLE=$(rustc -Vv | grep host | cut -d' ' -f2)
+          EXT=""
+          if [ "${{ runner.os }}" = "Windows" ]; then EXT=".exe"; fi
+          node scripts/make-sea.mjs "../desktop/src-tauri/binaries/daemon-${TRIPLE}${EXT}"
+
+      - name: Dépendances desktop
+        working-directory: desktop
+        run: npm ci
+
+      # N'exporte que les secrets réellement configurés : sans certificat Apple
+      # le build macOS reste non signé (fonctionnel, avertissement Gatekeeper) ;
+      # sans clé updater, la release sort sans artefacts d'auto-update.
+      - name: Exporter les secrets de signature présents
+        shell: bash
+        env:
+          S_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          S_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          S_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          S_APPLE_ID: ${{ secrets.APPLE_ID }}
+          S_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          S_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          S_TAURI_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          add() {
+            if [ -n "$2" ]; then
+              { echo "$1<<KOAEOF"; echo "$2"; echo "KOAEOF"; } >> "$GITHUB_ENV"
+            fi
+          }
+          add APPLE_CERTIFICATE "$S_APPLE_CERTIFICATE"
+          add APPLE_CERTIFICATE_PASSWORD "$S_APPLE_CERTIFICATE_PASSWORD"
+          add APPLE_SIGNING_IDENTITY "$S_APPLE_SIGNING_IDENTITY"
+          add APPLE_ID "$S_APPLE_ID"
+          add APPLE_PASSWORD "$S_APPLE_PASSWORD"
+          add APPLE_TEAM_ID "$S_APPLE_TEAM_ID"
+          if [ -n "$S_TAURI_KEY" ]; then
+            add TAURI_SIGNING_PRIVATE_KEY "$S_TAURI_KEY"
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=" >> "$GITHUB_ENV"
+            echo 'TAURI_EXTRA_ARGS=--config {"bundle":{"createUpdaterArtifacts":true}}' >> "$GITHUB_ENV"
+          fi
+
+      - name: Build & publication de la release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: 'KoaTeam ${{ github.ref_name }}'
+          releaseBody: 'Installeurs générés par la CI — voir RELEASE.md pour les notes de signature.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          args: --bundles ${{ matrix.bundles }} ${{ env.TAURI_EXTRA_ARGS }}
