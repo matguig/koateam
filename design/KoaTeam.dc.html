@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;text-wrap:pretty}
+  :root{--bg:#161618;--side:#1d1d20;--card:#232327;--card2:#29292e;--border:rgba(255,255,255,.09);--text:#f2f2f4;--text2:#a2a2ab;--text3:#71717a;--accent:#0a84ff;--shadow:0 12px 40px rgba(0,0,0,.5)}
+  [data-theme="light"]{--bg:#f5f5f7;--side:#ebebee;--card:#ffffff;--card2:#f4f4f6;--border:rgba(0,0,0,.1);--text:#1d1d1f;--text2:#63636b;--text3:#97979e;--accent:#0071e3;--shadow:0 12px 40px rgba(0,0,0,.14)}
+  *{box-sizing:border-box}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  ::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+  input,textarea,select,button{font-family:inherit}
+  input[type="range"]{accent-color:var(--accent)}
+  @keyframes kpulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="height:100vh;min-width:1100px;display:flex;background:var(--bg);color:var(--text);overflow:hidden;font-size:13px">
+
+  <aside style="width:238px;flex-shrink:0;background:var(--side);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:14px 12px 12px">
+    <div style="display:flex;gap:7px;padding:2px 4px 0">
+      <span style="width:11px;height:11px;border-radius:50%;background:#ff5f57"></span>
+      <span style="width:11px;height:11px;border-radius:50%;background:#febc2e"></span>
+      <span style="width:11px;height:11px;border-radius:50%;background:#28c840"></span>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin:16px 0 6px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="width:8px;height:8px;border-radius:50%;background:#30d158;animation:kpulse 2.4s infinite"></span>
+        <span style="font-weight:700;font-size:13px">Lancement SaaS Photo</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin:3px 0 10px">Workspace actif · 9 employés</div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px">
+        <span>Budget du mois</span><span style="font-variant-numeric:tabular-nums"><strong style="color:var(--text)">240 $</strong> / 400 $</span>
+      </div>
+      <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden;display:flex">
+        <span style="width:60%;background:var(--accent)"></span>
+        <span style="width:21%;background:color-mix(in srgb, var(--accent) 40%, transparent)"></span>
+      </div>
+    </div>
+    <button onClick="{{ goF }}" style="display:flex;align-items:center;gap:8px;background:none;border:1px dashed var(--border);border-radius:10px;padding:8px 12px;color:var(--text3);font-size:12px;cursor:pointer;margin-bottom:14px" style-hover="color:var(--accent);border-color:var(--accent)">
+      <span style="font-size:14px;line-height:1">＋</span> Nouveau workspace
+    </button>
+
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div onClick="{{ goT }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:500;background:{{ nbT }};color:{{ nfT }}">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 4h10M2.5 7.5h10M2.5 11h6.5"></path></svg>Tâches
+      </div>
+      <div onClick="{{ goO }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:500;background:{{ nbO }};color:{{ nfO }}">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7.5" cy="3.2" r="1.9"></circle><circle cx="3.4" cy="11.8" r="1.9"></circle><circle cx="11.6" cy="11.8" r="1.9"></circle><path d="M7.5 5.1v2.4M7.5 7.5l-3.2 2.6M7.5 7.5l3.2 2.6"></path></svg>Organigramme
+      </div>
+      <div onClick="{{ goI }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:500;background:{{ nbI }};color:{{ nfI }}">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2 8.5l2.2-5h6.6L13 8.5V12H2z"></path><path d="M2 8.5h3.3l1 1.6h2.4l1-1.6H13"></path></svg>Inbox
+        <span style="margin-left:auto;background:#ff453a;color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px">3</span>
+      </div>
+      <div onClick="{{ goA }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:500;background:{{ nbA }};color:{{ nfA }}">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4"></circle><path d="M9.6 9.6L13 13"></path></svg>Audit
+      </div>
+      <div onClick="{{ goC }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:500;background:{{ nbC }};color:{{ nfC }}">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 12.5V8M7.5 12.5v-9M12 12.5V6"></path></svg>Comptabilité
+      </div>
+      <div onClick="{{ goR }}" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:500;background:{{ nbR }};color:{{ nfR }}">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="7.5" cy="7.5" r="2.6"></circle><path d="M7.5 1.4v2M7.5 11.6v2M1.4 7.5h2M11.6 7.5h2M3.2 3.2l1.4 1.4M10.4 10.4l1.4 1.4M11.8 3.2l-1.4 1.4M4.6 10.4l-1.4 1.4"></path></svg>Réglages
+      </div>
+    </nav>
+
+    <div style="flex:1"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px">
+      <span style="font-size:11px;color:var(--text3)">Apparence</span>
+      <button onClick="{{ toggleTheme }}" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:3px 10px;color:var(--text2);font-size:11px;cursor:pointer" style-hover="color:var(--text)">{{ themeLabel }}</button>
+    </div>
+    <div onClick="{{ goI }}" style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer" style-hover="border-color:var(--accent)">
+      <span style="width:32px;height:32px;border-radius:50%;background:#bf5af2;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">LF</span>
+      <span style="min-width:0">
+        <span style="display:block;font-size:12px;font-weight:600">Léa Fontaine · CEO</span>
+        <span style="display:block;font-size:11px;color:var(--accent)">Rapport du matin →</span>
+      </span>
+    </div>
+  </aside>
+
+  <main style="flex:1;overflow-y:auto;position:relative">
+
+    <sc-if value="{{ showT }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Tâches" style="padding:26px 30px 48px;max-width:980px;margin:0 auto">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:6px">
+        <h1 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.02em">Tâches</h1>
+        <button style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="filter:brightness(1.1)">＋ Nouvelle tâche</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:18px">5 tâches · 262,00 $ alloués sur l’enveloppe de 400,00 $</div>
+      <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden">
+          <div onClick="{{ t.toggle }}" style="display:grid;grid-template-columns:minmax(0,1fr) 108px 150px 180px;gap:16px;align-items:center;padding:13px 16px;cursor:pointer" style-hover="background:var(--card2)">
+            <div style="display:flex;align-items:center;gap:9px;min-width:0">
+              <span style="color:var(--text3);font-size:10px;width:10px">{{ t.chev }}</span>
+              <span style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</span>
+              <sc-if value="{{ t.hasQ }}" hint-placeholder-val="{{ false }}">
+                <span style="background:color-mix(in srgb, #bf5af2 16%, transparent);color:#bf5af2;font-size:10.5px;font-weight:600;border-radius:10px;padding:1px 7px;flex-shrink:0">{{ t.qLabel }}</span>
+              </sc-if>
+            </div>
+            <span style="justify-self:start;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2.5px 9px;border-radius:20px;color:{{ t.sc }};background:{{ t.sbg }}"><span style="width:5px;height:5px;border-radius:50%;background:{{ t.sc }}"></span>{{ t.sl }}</span>
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-variant-numeric:tabular-nums">{{ t.progress }} sous-tâches</div>
+              <div style="height:4px;border-radius:2px;background:var(--border)"><div style="height:4px;border-radius:2px;background:{{ t.sc }};width:{{ t.pct }}%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;font-variant-numeric:tabular-nums"><span>{{ t.spent }}</span><span style="color:var(--text3)">/ {{ t.alloc }}</span></div>
+              <div style="height:4px;border-radius:2px;background:var(--border);display:flex;overflow:hidden"><span style="width:{{ t.bpct }}%;background:var(--accent)"></span><span style="width:{{ t.epct }}%;background:color-mix(in srgb, var(--accent) 40%, transparent)"></span></div>
+            </div>
+          </div>
+          <sc-if value="{{ t.expanded }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid var(--border);background:var(--card2);padding:18px 18px 20px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:26px">
+              <div>
+                <p style="margin:0 0 14px;color:var(--text2);line-height:1.55;font-size:12.5px">{{ t.desc }}</p>
+                <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:8px">Objectifs</div>
+                <sc-for list="{{ t.objectives }}" as="o" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12.5px">
+                    <span style="width:15px;height:15px;border-radius:4px;border:1px solid {{ o.bc }};background:{{ o.bg }};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ o.mark }}</span>
+                    <span style="color:{{ o.fg }};text-decoration:{{ o.deco }}">{{ o.label }}</span>
+                  </div>
+                </sc-for>
+                <div style="display:flex;gap:9px;background:color-mix(in srgb, #bf5af2 8%, transparent);border:1px solid color-mix(in srgb, #bf5af2 25%, transparent);border-radius:10px;padding:10px 12px;margin:14px 0">
+                  <span style="width:22px;height:22px;border-radius:50%;background:#bf5af2;color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">LF</span>
+                  <div style="font-size:12px;line-height:1.5"><strong>Évaluation de Léa</strong> — {{ t.ceoNote }}</div>
+                </div>
+                <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin:16px 0 8px">Sous-tâches</div>
+                <sc-for list="{{ t.tree }}" as="n" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:8px;padding:4.5px 0 4.5px {{ n.pad }}px;font-size:12.5px">
+                    <span style="color:var(--text3);font-size:11px">{{ n.branch }}</span>
+                    <span style="width:20px;height:20px;border-radius:50%;background:{{ n.color }};color:#fff;font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ n.init }}</span>
+                    <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ n.title }}</span>
+                    <span style="color:var(--text3);font-size:11.5px;flex-shrink:0">{{ n.who }}</span>
+                    <span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:1.5px 7px;border-radius:12px;color:{{ n.sc }};background:{{ n.sbg }};flex-shrink:0">{{ n.sl }}</span>
+                    <span style="width:52px;text-align:right;color:var(--text2);font-size:11.5px;font-variant-numeric:tabular-nums;flex-shrink:0">{{ n.cost }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div>
+                <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:8px">Livrables</div>
+                <sc-for list="{{ t.deliverables }}" as="d" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:12.5px">
+                    <svg width="13" height="15" viewBox="0 0 13 15" fill="none" stroke="var(--text3)" stroke-width="1.3"><path d="M2 1.5h6l3 3v9H2z"></path><path d="M8 1.5v3h3"></path></svg>
+                    <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.name }}</span>
+                    <span style="color:var(--text3);font-size:11px">{{ d.meta }}</span>
+                  </div>
+                </sc-for>
+                <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin:16px 0 8px">Questions &amp; réponses</div>
+                <sc-for list="{{ t.qa }}" as="q" hint-placeholder-count="2">
+                  <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <span style="width:22px;height:22px;border-radius:50%;background:{{ q.color }};color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ q.init }}</span>
+                    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.5;flex:1"><strong>{{ q.who }}</strong> · <span style="color:var(--text3);font-size:11px">{{ q.when }}</span><br>{{ q.text }}</div>
+                  </div>
+                </sc-for>
+                <div style="display:flex;gap:7px;margin-top:10px">
+                  <input placeholder="Répondre à l’équipe…" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;color:var(--text);font-size:12.5px;outline:none">
+                  <button style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:0 13px;font-size:12px;font-weight:600;cursor:pointer">Envoyer</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showO }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Organigramme" style="padding:26px 30px 48px;max-width:1080px;margin:0 auto">
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-.02em">Organigramme</h1>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:24px">9 employés actifs · 2 départements · masse « salariale » du mois : 240,00 $</div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="background:var(--card);border:1.5px solid var(--accent);border-radius:12px;padding:11px 18px;display:flex;align-items:center;gap:10px">
+          <span style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">V</span>
+          <div><div style="font-weight:700;font-size:13px">Vous</div><div style="font-size:11px;color:var(--text3)">Propriétaire · budget 400 $/mois</div></div>
+        </div>
+        <div style="width:1px;height:22px;background:var(--border)"></div>
+        <div onClick="{{ openLea }}" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;gap:11px;cursor:pointer;width:290px" style-hover="border-color:var(--accent)">
+          <span style="width:38px;height:38px;border-radius:50%;background:#bf5af2;color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">LF</span>
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:13px">Léa Fontaine <span style="background:color-mix(in srgb, #bf5af2 16%, transparent);color:#bf5af2;font-size:9.5px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:4px">CEO</span></div>
+            <div style="font-size:11.5px;color:var(--text2)">Directrice générale</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">Sonnet · 3,00 $/Mtok · dépensé 50,94 $ · 5 tâches</div>
+          </div>
+        </div>
+        <div style="width:1px;height:22px;background:var(--border)"></div>
+        <div style="width:520px;height:1px;background:var(--border)"></div>
+        <div style="display:flex;gap:60px;margin-top:0">
+          <div style="width:1px;height:22px;background:var(--border);margin-left:130px"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:-1px">
+        <div>
+          <div style="text-align:center"><div style="width:1px;height:20px;background:var(--border);margin:0 auto"></div></div>
+          <div style="background:color-mix(in srgb, var(--card) 60%, transparent);border:1px solid var(--border);border-radius:14px;padding:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+              <span style="font-weight:700;font-size:13px">Marketing</span><span style="font-size:11px;color:var(--text3)">4 employés · 64,66 $</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ mkt }}" as="m" hint-placeholder-count="4">
+                <div onClick="{{ m.open }}" style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:10px 12px;display:flex;gap:10px;cursor:pointer;margin-left:{{ m.pad }}px" style-hover="border-color:var(--accent)">
+                  <span style="width:32px;height:32px;border-radius:50%;background:{{ m.color }};color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ m.init }}</span>
+                  <div style="min-width:0;flex:1">
+                    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:6px">{{ m.name }}<span style="font-size:9.5px;font-weight:700;border-radius:8px;padding:1px 6px;color:{{ m.tagC }};background:{{ m.tagBg }}">{{ m.tag }}</span></div>
+                    <div style="font-size:11.5px;color:var(--text2)">{{ m.title }}</div>
+                    <div style="font-size:11px;color:var(--text3);margin-top:2px;font-variant-numeric:tabular-nums">{{ m.model }} · dépensé {{ m.spent }} · {{ m.load }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="text-align:center"><div style="width:1px;height:20px;background:var(--border);margin:0 auto"></div></div>
+          <div style="background:color-mix(in srgb, var(--card) 60%, transparent);border:1px solid var(--border);border-radius:14px;padding:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+              <span style="font-weight:700;font-size:13px">Dev</span><span style="font-size:11px;color:var(--text3)">4 employés · 110,20 $</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ dev }}" as="m" hint-placeholder-count="4">
+                <div onClick="{{ m.open }}" style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:10px 12px;display:flex;gap:10px;cursor:pointer;margin-left:{{ m.pad }}px" style-hover="border-color:var(--accent)">
+                  <span style="width:32px;height:32px;border-radius:50%;background:{{ m.color }};color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ m.init }}</span>
+                  <div style="min-width:0;flex:1">
+                    <div style="font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:6px">{{ m.name }}<span style="font-size:9.5px;font-weight:700;border-radius:8px;padding:1px 6px;color:{{ m.tagC }};background:{{ m.tagBg }}">{{ m.tag }}</span></div>
+                    <div style="font-size:11.5px;color:var(--text2)">{{ m.title }}</div>
+                    <div style="font-size:11px;color:var(--text3);margin-top:2px;font-variant-numeric:tabular-nums">{{ m.model }} · dépensé {{ m.spent }} · {{ m.load }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:28px">
+        <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:10px">Anciens</div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:10px 12px;display:flex;gap:10px;align-items:center;max-width:420px;opacity:.55">
+          <span style="width:32px;height:32px;border-radius:50%;background:#8e8e93;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;filter:grayscale(1)">PG</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:12.5px">Paul Girard</div>
+            <div style="font-size:11.5px;color:var(--text2)">Analyste data · Haiku · 0,80 $/Mtok · dépensé 14,20 $ · archivé le 9 juil.</div>
+          </div>
+          <button style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 11px;color:var(--text2);font-size:11.5px;cursor:pointer" style-hover="color:var(--text);border-color:var(--text3)">Réveiller</button>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showI }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Inbox" style="padding:26px 30px 48px;max-width:780px;margin:0 auto">
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-.02em">Inbox</h1>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:18px">3 éléments nécessitent votre attention · triés par urgence</div>
+
+      <div style="background:var(--card);border:1px solid color-mix(in srgb, #ff453a 40%, var(--border));border-radius:12px;padding:15px 16px;margin-bottom:10px">
+        <div style="display:flex;gap:11px">
+          <span style="width:30px;height:30px;border-radius:9px;background:color-mix(in srgb, #ff453a 16%, transparent);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#ff453a" stroke-width="1.5" stroke-linecap="round"><path d="M7 1.5L13 12H1z" stroke-linejoin="round"></path><path d="M7 5.5v3M7 10.3v.2"></path></svg></span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Tâche « Landing page produit » en pause — budget épuisé</div>
+            <div style="font-size:12px;color:var(--text2);margin:3px 0 10px">25,00 $ consommés sur 25,00 $ alloués. Julien estime qu’il reste ~2 h de travail (≈ 6,50 $).</div>
+            <div style="display:flex;gap:7px">
+              <button style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Rallonger de 10 $</button>
+              <button style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer">Réduire le scope</button>
+              <button style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:#ff453a;font-size:12px;cursor:pointer">Abandonner</button>
+            </div>
+          </div>
+          <span style="font-size:11px;color:var(--text3);flex-shrink:0">il y a 12 min</span>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:10px">
+        <div style="display:flex;gap:11px">
+          <span style="width:30px;height:30px;border-radius:9px;background:color-mix(in srgb, #ff9f0a 16%, transparent);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#ff9f0a" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="3.2"></circle><path d="M7.4 7.4L12.5 12.5M10.4 10.4l1.8-1.8"></path></svg></span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Karim demande l’accès shell pour lancer les tests</div>
+            <div style="font-size:12px;color:var(--text2);margin:3px 0 10px">Tâche « Intégration paiement Stripe » · commande : <code style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--card2);border:1px solid var(--border);border-radius:5px;padding:1px 5px">npm run test:e2e</code></div>
+            <sc-if value="{{ permPending }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:7px">
+                <button onClick="{{ permOnce }}" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Autoriser une fois</button>
+                <button onClick="{{ permAlways }}" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer">Toujours autoriser</button>
+                <button onClick="{{ permDeny }}" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:#ff453a;font-size:12px;cursor:pointer">Refuser</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ permDone }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#30d158;font-weight:600">{{ permMsg }}</div>
+            </sc-if>
+          </div>
+          <span style="font-size:11px;color:var(--text3);flex-shrink:0">il y a 26 min</span>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:10px">
+        <div style="display:flex;gap:11px">
+          <span style="width:30px;height:30px;border-radius:9px;background:color-mix(in srgb, #bf5af2 16%, transparent);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:#bf5af2;font-weight:800;font-size:15px">?</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Le HEAD Marketing n’a pas pu répondre : quel est le public cible prioritaire ?</div>
+            <div style="font-size:12px;color:var(--text2);margin:3px 0 10px">Remontée par Thomas Perrin · Tâche « Campagne de lancement » · bloque 2 sous-tâches</div>
+            <sc-if value="{{ qPending }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:7px">
+                <input placeholder="Ex. : photographes amateurs, 25-40 ans…" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-size:12.5px;outline:none">
+                <button onClick="{{ answerQ }}" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer">Répondre</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ qDone }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#30d158;font-weight:600">✓ Réponse transmise à Thomas — les 2 sous-tâches vont reprendre.</div>
+            </sc-if>
+          </div>
+          <span style="font-size:11px;color:var(--text3);flex-shrink:0">il y a 1 h</span>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:10px;opacity:.92">
+        <div style="display:flex;gap:11px">
+          <span style="width:30px;height:30px;border-radius:9px;background:color-mix(in srgb, #30d158 16%, transparent);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#30d158" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l3 3 6-7"></path></svg></span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Tâche « Étude concurrence » terminée — livrable à vérifier</div>
+            <div style="font-size:12px;color:var(--text2);margin:3px 0 10px">Chloé vous a livré « Étude concurrence v3.pdf » (18 pages) · coût final 22,15 $ · 7,85 $ restitués à l’enveloppe.</div>
+            <div style="display:flex;gap:7px">
+              <button style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer">Archiver</button>
+              <button style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer">Rouvrir</button>
+            </div>
+          </div>
+          <span style="font-size:11px;color:var(--text3);flex-shrink:0">hier, 18:42</span>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 16px">
+        <div onClick="{{ toggleReport }}" style="display:flex;gap:11px;cursor:pointer;align-items:center">
+          <span style="width:30px;height:30px;border-radius:50%;background:#bf5af2;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">LF</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Léa vous a envoyé le rapport du matin ☕</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">« Bonne nouvelle sur l’étude concurrence, un point de vigilance sur la landing. »</div>
+          </div>
+          <span style="font-size:11px;color:var(--text3)">08:00 · {{ reportChev }}</span>
+        </div>
+        <sc-if value="{{ reportOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid var(--border);margin-top:13px;padding-top:13px;font-size:12.5px;line-height:1.6;color:var(--text2)">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+              <div style="background:var(--card2);border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3)">Consommé hier</div><div style="font-weight:700;color:var(--text);font-size:15px">18,42 $</div></div>
+              <div style="background:var(--card2);border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3)">Sous-tâches finies</div><div style="font-weight:700;color:var(--text);font-size:15px">3</div></div>
+              <div style="background:var(--card2);border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3)">Blocages</div><div style="font-weight:700;color:#ff9f0a;font-size:15px">1</div></div>
+              <div style="background:var(--card2);border-radius:9px;padding:9px 11px"><div style="font-size:10.5px;color:var(--text3)">Rythme mensuel</div><div style="font-weight:700;color:var(--text);font-size:15px">424 $/mois</div></div>
+            </div>
+            <p style="margin:0 0 8px">L’étude concurrence est terminée sous budget (−7,85 $), je recommande d’archiver. La campagne de lancement avance bien (4/7), mais la question du public cible bloque la séquence emails de Chloé.</p>
+            <p style="margin:0">⚠ Au rythme actuel (424 $/mois projetés), nous dépasserons l’enveloppe vers le 26. Je propose de basculer les tâches de QA sur le modèle local (0 $) — déjà fait pour Nadia — et de geler « Identité de marque » jusqu’au mois prochain.</p>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showAu }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Audit" style="padding:26px 30px 48px;max-width:1060px;margin:0 auto">
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-.02em">Audit</h1>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">1 248 événements ce mois · tout est journalisé, rien ne se perd</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <select style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px"><option>Employé : tous</option><option>Léa Fontaine</option><option>Thomas Perrin</option><option>Chloé Martin</option><option>Karim Benali</option></select>
+        <select style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px"><option>Tâche : toutes</option><option>Campagne de lancement</option><option>Intégration paiement Stripe</option><option>Landing page produit</option></select>
+        <select style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px"><option>Type : tous</option><option>Conversation</option><option>Raisonnement</option><option>Appel d’outil</option><option>Écriture comptable</option></select>
+        <input placeholder="Rechercher dans les traces…" style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-size:12px;outline:none">
+      </div>
+      <div style="display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:var(--card);border:1px solid var(--accent);border-radius:11px;padding:11px 13px;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:5px"><span>Délégation · 09:14</span><span>0,09 $</span></div>
+            <div style="font-size:12.5px;line-height:1.5"><strong style="color:#bf5af2">Léa</strong> → <strong style="color:#ff9f0a">Thomas</strong> : « La séquence emails passe en priorité 1. Enveloppe : 8 $ max, deadline demain 18 h. Si le public cible n’est pas clarifié d’ici midi, escalade au propriétaire. »</div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px 13px;cursor:pointer" style-hover="border-color:var(--text3)">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:5px"><span>Délégation · 09:17</span><span>0,05 $</span></div>
+            <div style="font-size:12.5px;line-height:1.5"><strong style="color:#ff9f0a">Thomas</strong> → <strong style="color:#30d158">Chloé</strong> : « Rédige les 3 premiers emails en te basant sur l’étude concurrence. Ton : direct, pas de jargon. Je te débloque 4,50 $. »</div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px 13px;cursor:pointer" style-hover="border-color:var(--text3)">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:5px"><span>Escalade · 11:58</span><span>0,03 $</span></div>
+            <div style="font-size:12.5px;line-height:1.5"><strong style="color:#30d158">Chloé</strong> → <strong style="color:#ff9f0a">Thomas</strong> : « Impossible d’écrire l’email 2 sans connaître le public prioritaire. Je mets la sous-tâche en bloquée et je te la remonte. »</div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px 13px;cursor:pointer" style-hover="border-color:var(--text3)">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:5px"><span>Escalade filtrée · 12:02</span><span>0,02 $</span></div>
+            <div style="font-size:12.5px;line-height:1.5"><strong style="color:#ff9f0a">Thomas</strong> → <strong>Vous</strong> : question transmise à l’inbox — « Quel est le public cible prioritaire ? »</div>
+          </div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px">
+            <span style="width:26px;height:26px;border-radius:50%;background:#30d158;color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">CM</span>
+            <div><div style="font-weight:700;font-size:13px">Trace de raisonnement — Chloé Martin</div><div style="font-size:11px;color:var(--text3)">Sous-tâche « Séquence emails » · aujourd’hui 09:18 → 11:58</div></div>
+            <span style="margin-left:auto;font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums">12 480 tok in · 3 210 tok out · <strong style="color:var(--text)">0,14 $</strong></span>
+          </div>
+          <div style="border-left:2px solid var(--border);margin:14px 0 0 12px;padding-left:16px;display:flex;flex-direction:column;gap:12px;font-size:12.5px;line-height:1.55">
+            <div><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Déclencheur</div>Message de Thomas Perrin : assignation de la sous-tâche « Séquence emails » avec enveloppe de 4,50 $.</div>
+            <div><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Réflexion 1</div><span style="color:var(--text2)">« Je dois d’abord relire l’étude concurrence pour aligner le ton. L’email 1 (annonce) ne dépend pas du ciblage, je peux le rédiger tout de suite. »</span></div>
+            <div>
+              <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Appel d’outil</div>
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:4px">lecture_fichier("livrables/etude-concurrence-v3.pdf")<br><span style="color:#30d158">→ OK · 18 pages · résumé chargé en mémoire (2 140 tokens)</span></div>
+            </div>
+            <div>
+              <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Appel d’outil</div>
+              <div style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:4px">ecriture_fichier("livrables/email-1-annonce.md")<br><span style="color:#30d158">→ OK · 412 mots · coût cumulé 0,09 $</span></div>
+            </div>
+            <div><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Réflexion 2</div><span style="color:var(--text2)">« L’email 2 (bénéfices) exige de choisir entre les 3 segments identifiés dans l’étude. Aucun mandat pour trancher : rigueur avant vitesse. J’escalade à Thomas plutôt que de deviner. »</span></div>
+            <div><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Issue</div>Sous-tâche passée en <span style="color:#ff9f0a;font-weight:600">bloquée</span> · question escaladée · 3,15 $ non consommés conservés sur l’enveloppe.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showC }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Comptabilité" style="padding:26px 30px 48px;max-width:1020px;margin:0 auto">
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-.02em">Comptabilité</h1>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:18px">Juillet 2026 · enveloppe 400,00 $ · chaque cent est tracé</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Consommé</div><div style="font-size:27px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums">240,00 $</div><div style="font-size:11.5px;color:var(--text2);margin-top:2px">60 % de l’enveloppe · J17/31</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Engagé</div><div style="font-size:27px;font-weight:700;letter-spacing:-.02em;margin-top:4px;color:#ff9f0a;font-variant-numeric:tabular-nums">85,00 $</div><div style="font-size:11.5px;color:var(--text2);margin-top:2px">réservé sur 3 tâches en cours</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Disponible</div><div style="font-size:27px;font-weight:700;letter-spacing:-.02em;margin-top:4px;color:#30d158;font-variant-numeric:tabular-nums">75,00 $</div><div style="font-size:11.5px;color:var(--text2);margin-top:2px">projection fin de mois : −24 $ ⚠</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:12px;margin-bottom:14px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:14px"><span style="font-weight:700;font-size:13px">Burn-down du mois</span><span style="font-size:11px;color:var(--text3)">budget restant, par jour</span></div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:110px">
+            <sc-for list="{{ burn }}" as="b" hint-placeholder-count="17">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="width:100%;border-radius:3px 3px 0 0;background:{{ b.bg }};height:{{ b.h }}px"></div>
+                <span style="font-size:9px;color:var(--text3)">{{ b.d }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:12px">Répartition</div>
+          <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:7px">Par employé</div>
+          <sc-for list="{{ empBars }}" as="e" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11.5px">
+              <span style="width:76px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.name }}</span>
+              <div style="flex:1;height:6px;border-radius:3px;background:var(--border)"><div style="height:6px;border-radius:3px;background:{{ e.color }};width:{{ e.pct }}%"></div></div>
+              <span style="width:48px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ e.amt }}</span>
+            </div>
+          </sc-for>
+          <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin:12px 0 7px">Par modèle</div>
+          <sc-for list="{{ modelBars }}" as="e" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11.5px">
+              <span style="width:76px;color:var(--text2)">{{ e.name }}</span>
+              <div style="flex:1;height:6px;border-radius:3px;background:var(--border)"><div style="height:6px;border-radius:3px;background:{{ e.color }};width:{{ e.pct }}%"></div></div>
+              <span style="width:48px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)">{{ e.amt }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px 0">
+        <div style="font-weight:700;font-size:13px;padding:12px 18px 8px">Journal des écritures</div>
+        <sc-for list="{{ journal }}" as="j" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:90px 110px minmax(0,1fr) 90px 90px;gap:12px;align-items:center;padding:8px 18px;border-top:1px solid var(--border);font-size:12px">
+            <span style="color:var(--text3);font-variant-numeric:tabular-nums">{{ j.date }}</span>
+            <span style="justify-self:start;font-size:10.5px;font-weight:700;border-radius:10px;padding:2px 8px;color:{{ j.tc }};background:{{ j.tbg }}">{{ j.type }}</span>
+            <span style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ j.label }}</span>
+            <span style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:{{ j.ac }}">{{ j.amount }}</span>
+            <span style="text-align:right;color:var(--text3);font-variant-numeric:tabular-nums">{{ j.solde }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showF }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Fondation" style="padding:26px 30px 48px;max-width:1060px;margin:0 auto">
+      <h1 style="margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-.02em">Nouveau workspace</h1>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:18px">Étape 2/3 — recrutement du CEO avec le Cabinet Aubert &amp; Fils</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1.45fr) 340px;gap:18px;align-items:start">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:9px;max-width:82%">
+            <span style="width:28px;height:28px;border-radius:50%;background:#8e8e93;color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">A&amp;F</span>
+            <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;border-top-left-radius:4px;padding:10px 13px;font-size:12.5px;line-height:1.55">Bienvenue chez <strong>Aubert &amp; Fils</strong>, cabinet de recrutement de dirigeants virtuels depuis 2024. Parlez-nous de votre projet : que doit accomplir cette entreprise ?</div>
+          </div>
+          <div style="display:flex;gap:9px;max-width:82%;align-self:flex-end;flex-direction:row-reverse">
+            <span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">V</span>
+            <div style="background:var(--accent);color:#fff;border-radius:12px;border-top-right-radius:4px;padding:10px 13px;font-size:12.5px;line-height:1.55">Créer et vendre une bibliothèque de presets Lightroom. Objectif : premières ventes sous 6 semaines, budget 400 $/mois, providers Anthropic + un modèle local.</div>
+          </div>
+          <div style="display:flex;gap:9px;max-width:82%">
+            <span style="width:28px;height:28px;border-radius:50%;background:#8e8e93;color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">A&amp;F</span>
+            <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;border-top-left-radius:4px;padding:10px 13px;font-size:12.5px;line-height:1.55">Parfait. Avec ce budget, nous conseillons un CEO économe qui délègue aux petits modèles. Dernière question : préférez-vous un profil prudent ou offensif sur les dépenses ?</div>
+          </div>
+          <div style="display:flex;gap:9px;max-width:82%;align-self:flex-end;flex-direction:row-reverse">
+            <span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">V</span>
+            <div style="background:var(--accent);color:#fff;border-radius:12px;border-top-right-radius:4px;padding:10px 13px;font-size:12.5px;line-height:1.55">Prudent, mais qui sait accélérer quand ça compte.</div>
+          </div>
+          <div style="display:flex;gap:9px">
+            <span style="width:28px;height:28px;border-radius:50%;background:#8e8e93;color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">A&amp;F</span>
+            <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;border-top-left-radius:4px;padding:10px 13px;font-size:12.5px;line-height:1.55">Voici <strong>3 profils</strong> issus de notre vivier. Les jauges sont ajustables avant signature — le caractère se fixe au contrat.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px">
+            <sc-for list="{{ ceos }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.pick }}" style="border-radius:12px;padding:13px;cursor:pointer;background:var(--card2);border:{{ c.border }}">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+                  <span style="width:32px;height:32px;border-radius:50%;background:{{ c.color }};color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">{{ c.init }}</span>
+                  <div><div style="font-weight:700;font-size:12.5px">{{ c.name }}</div><div style="font-size:10.5px;color:{{ c.badgeC }};font-weight:600">{{ c.badge }}</div></div>
+                </div>
+                <div style="font-size:11.5px;color:var(--text2);line-height:1.45;margin-bottom:10px">{{ c.pitch }}</div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <sc-for list="{{ c.traits }}" as="tr" hint-placeholder-count="3">
+                    <div style="font-size:10px;color:var(--text3)">
+                      <div style="display:flex;justify-content:space-between"><span>{{ tr.label }}</span><span>{{ tr.v }}</span></div>
+                      <input type="range" min="0" max="100" defaultValue="{{ tr.v }}" style="width:100%;height:12px;margin:0">
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:sticky;top:20px">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:2px">Récapitulatif contractuel</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:14px">Workspace « Presets Lightroom »</div>
+          <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:5px">Mission</div>
+          <p style="margin:0 0 14px;font-size:12.5px;line-height:1.5;color:var(--text2)">Concevoir, produire et vendre une bibliothèque de presets Lightroom. Premières ventes sous 6 semaines.</p>
+          <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:5px">Budget</div>
+          <div style="font-size:12.5px;margin-bottom:14px"><strong>400,00 $ / mois</strong> <span style="color:var(--text3)">· pause automatique à 100 %</span></div>
+          <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:6px">Providers autorisés</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;margin-bottom:14px;font-variant-numeric:tabular-nums">
+            <div style="display:flex;justify-content:space-between"><span>Sonnet</span><span style="color:var(--text2)">3,00 $/Mtok</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Haiku</span><span style="color:var(--text2)">0,80 $/Mtok</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Fable</span><span style="color:var(--text2)">1,60 $/Mtok</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Qwen 7B (local)</span><span style="color:#30d158">0,00 $/Mtok</span></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:6px">Départements pressentis</div>
+          <div style="display:flex;gap:6px;margin-bottom:18px">
+            <span style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:11.5px">Production</span>
+            <span style="background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:11.5px">Marketing</span>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:13px;display:flex;align-items:center;gap:10px">
+            <div style="flex:1;font-size:11.5px;color:var(--text2)">CEO retenu : <strong style="color:var(--text)">{{ pickedName }}</strong></div>
+            <button onClick="{{ sign }}" style="background:{{ signBg }};color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer">{{ signLabel }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showR }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Réglages" style="padding:26px 30px 48px;max-width:640px;margin:0 auto">
+      <h1 style="margin:0 0 18px;font-size:21px;font-weight:700;letter-spacing:-.02em">Réglages</h1>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px">Workspace</div>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center;font-size:12.5px">
+          <span style="color:var(--text2)">Nom</span>
+          <input defaultValue="Lancement SaaS Photo" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-size:12.5px;outline:none">
+          <span style="color:var(--text2)">Budget mensuel</span>
+          <input defaultValue="400,00 $" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-size:12.5px;outline:none;width:130px">
+          <span style="color:var(--text2)">Pause automatique</span>
+          <span style="color:var(--text2)">À 100 % de l’enveloppe · les tâches passent en <span style="color:#ff453a;font-weight:600">pause budget</span></span>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px">Providers IA autorisés</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px;font-variant-numeric:tabular-nums">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Sonnet <span style="color:var(--text3)">· 3,00 $/Mtok</span></span><span style="width:34px;height:20px;border-radius:10px;background:#30d158;position:relative;flex-shrink:0"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Haiku <span style="color:var(--text3)">· 0,80 $/Mtok</span></span><span style="width:34px;height:20px;border-radius:10px;background:#30d158;position:relative;flex-shrink:0"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Fable <span style="color:var(--text3)">· 1,60 $/Mtok</span></span><span style="width:34px;height:20px;border-radius:10px;background:#30d158;position:relative;flex-shrink:0"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Qwen 7B (local) <span style="color:var(--text3)">· 0,00 $/Mtok · votre machine</span></span><span style="width:34px;height:20px;border-radius:10px;background:#30d158;position:relative;flex-shrink:0"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;opacity:.55"><span>Opus <span style="color:var(--text3)">· 15,00 $/Mtok</span></span><span style="width:34px;height:20px;border-radius:10px;background:var(--border);position:relative;flex-shrink:0"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid color-mix(in srgb, #ff453a 35%, var(--border));border-radius:12px;padding:16px 18px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#ff453a">Zone sensible</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Dissoudre l’entreprise archive tous les employés et gèle la comptabilité. Les traces d’audit restent consultables.</div>
+        <button style="background:none;border:1px solid #ff453a;border-radius:8px;padding:7px 13px;color:#ff453a;font-size:12px;font-weight:600;cursor:pointer">Dissoudre l’entreprise…</button>
+      </div>
+    </div>
+    </sc-if>
+
+  </main>
+
+  <sc-if value="{{ empOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeEmp }}" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40"></div>
+    <div data-screen-label="Fiche employé" style="position:fixed;top:0;right:0;bottom:0;width:408px;background:var(--card);border-left:1px solid var(--border);z-index:41;overflow-y:auto;padding:22px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:flex-start;gap:13px">
+        <span style="width:52px;height:52px;border-radius:50%;background:{{ emp.color }};color:#fff;font-size:18px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ emp.init }}</span>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:700;letter-spacing:-.01em">{{ emp.name }}</div>
+          <div style="font-size:12.5px;color:var(--text2)">{{ emp.title }}</div>
+          <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">
+            <span style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:2px 9px;font-size:11px;font-variant-numeric:tabular-nums">{{ emp.model }}</span>
+            <span style="background:color-mix(in srgb, #30d158 14%, transparent);color:#30d158;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:600">En poste</span>
+          </div>
+        </div>
+        <button onClick="{{ closeEmp }}" style="background:none;border:none;color:var(--text3);font-size:17px;cursor:pointer;padding:2px 6px" style-hover="color:var(--text)">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0">
+        <div style="background:var(--card2);border-radius:10px;padding:10px 12px"><div style="font-size:10.5px;color:var(--text3)">Dépense cumulée</div><div style="font-weight:700;font-size:16px;font-variant-numeric:tabular-nums">{{ emp.spent }}</div></div>
+        <div style="background:var(--card2);border-radius:10px;padding:10px 12px"><div style="font-size:10.5px;color:var(--text3)">Charge actuelle</div><div style="font-weight:700;font-size:16px">{{ emp.load }}</div></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:8px">Caractère</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+        <sc-for list="{{ emp.traits }}" as="tr" hint-placeholder-count="6">
+          <div style="font-size:11.5px">
+            <div style="display:flex;justify-content:space-between;color:var(--text2)"><span>{{ tr.label }}</span><span style="font-variant-numeric:tabular-nums">{{ tr.v }}</span></div>
+            <input type="range" min="0" max="100" defaultValue="{{ tr.v }}" style="width:100%;height:14px;margin:2px 0 0">
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:6px">Scope du poste</div>
+      <p style="margin:0 0 18px;font-size:12.5px;line-height:1.55;color:var(--text2)">{{ emp.scope }}</p>
+      <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:8px">Permissions accordées</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px">
+        <sc-for list="{{ emp.perms }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:9px;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:7px 11px;font-size:12px">
+            <span style="width:6px;height:6px;border-radius:50%;background:{{ p.c }};flex-shrink:0"></span>
+            <span style="flex:1">{{ p.label }}</span>
+            <a href="#" style="font-size:11px;color:#ff453a">Révoquer</a>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:8px">Mémoire</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:18px">
+        <sc-for list="{{ emp.memory }}" as="mm" hint-placeholder-count="3">
+          <div style="background:var(--card2);border-radius:8px;padding:7px 11px;font-size:11.5px;color:var(--text2);line-height:1.45">{{ mm.text }}</div>
+        </sc-for>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:8px">Historique d’interventions</div>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ emp.history }}" as="h" hint-placeholder-count="4">
+          <div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:12px;align-items:baseline">
+            <span style="color:var(--text3);width:66px;flex-shrink:0;font-variant-numeric:tabular-nums">{{ h.when }}</span>
+            <span style="flex:1;color:var(--text2)">{{ h.what }}</span>
+            <span style="font-variant-numeric:tabular-nums;font-weight:600">{{ h.cost }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;defaultTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;,&quot;section&quot;:&quot;Apparence&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;taches&quot;,&quot;org&quot;,&quot;inbox&quot;,&quot;audit&quot;,&quot;compta&quot;,&quot;fondation&quot;,&quot;reglages&quot;],&quot;default&quot;:&quot;taches&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Navigation&quot;}}">
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { tab: p.startScreen ?? 'taches', theme: p.defaultTheme ?? 'dark', expanded: 't2', emp: null, report: false, ceo: 0, perm: null, q: false, signed: false };
+    const S = this.S = {
+      todo: ['À faire', '#8e8e93'], doing: ['En cours', '#0a84ff'], blocked: ['Bloquée', '#ff9f0a'],
+      review: ['En revue', '#bf5af2'], done: ['Terminée', '#30d158'], paused: ['Pause budget', '#ff453a']
+    };
+    const E = this.E = {};
+    const mk = (id, name, title, color, model, spend, load, traits, scope, perms, memory) => {
+      E[id] = { id, name, title, color, model, spend, load, traits, scope, perms, memory,
+        init: name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() };
+    };
+    mk('lea', 'Léa Fontaine', 'CEO · Directrice générale', '#bf5af2', 'Sonnet · 3,00 $/Mtok', 50.94, '5 tâches',
+      [62, 70, 85, 55, 60, 90], 'Décompose vos tâches, structure les départements, arbitre les budgets et vous remonte l’essentiel. Ne produit pas elle-même : elle fait produire.',
+      ['fs:/projets/saas-photo (lecture)', 'web:recherche web', 'org:embauche / licenciement'],
+      ['Le propriétaire préfère des rapports courts, chiffrés, le matin.', 'Basculer la QA sur le modèle local pour économiser.', 'Public cible : question ouverte, escaladée le 17/07.']);
+    mk('thomas', 'Thomas Perrin', 'HEAD Marketing', '#ff9f0a', 'Sonnet · 3,00 $/Mtok', 24.10, '2 tâches',
+      [55, 45, 70, 65, 50, 75], 'Pilote le département Marketing : campagne de lancement, contenus, acquisition. Délègue à Chloé, Hugo et Inès.',
+      ['fs:/projets/saas-photo/marketing', 'web:recherche web'],
+      ['Ton de marque : direct, sans jargon.', 'Budget campagne serré : privilégier Haiku pour les brouillons.']);
+    mk('karim', 'Karim Benali', 'HEAD Dev', '#0a84ff', 'Sonnet · 3,00 $/Mtok', 31.77, '2 tâches',
+      [50, 30, 90, 70, 40, 65], 'Pilote le département Dev : landing, intégration paiement, qualité. Demande les accès shell au besoin — jamais sans votre accord.',
+      ['fs:/projets/saas-photo/app', 'shell:npm run test:* (en attente)', 'web:recherche web'],
+      ['Stack retenue : Next.js + Stripe.', 'Les tests e2e nécessitent un accès shell — demande envoyée.']);
+    mk('chloe', 'Chloé Martin', 'Rédactrice · Marketing', '#30d158', 'Haiku · 0,80 $/Mtok', 12.05, '2 sous-tâches',
+      [70, 60, 80, 75, 45, 70], 'Rédige emails, pages et études. Escalade plutôt que deviner quand le brief est ambigu.',
+      ['fs:/projets/saas-photo/marketing/contenus', 'web:recherche web'],
+      ['Étude concurrence v3 : 3 segments identifiés.', 'Email 1 rédigé, email 2 bloqué (ciblage).']);
+    mk('hugo', 'Hugo Lambert', 'Growth / SEO · Marketing', '#64d2ff', 'Haiku · 0,80 $/Mtok', 8.63, '1 sous-tâche',
+      [45, 55, 60, 60, 35, 60], 'Acquisition organique : SEO, tracking, analytics de la landing.',
+      ['fs:/projets/saas-photo/marketing', 'web:recherche web'],
+      ['GA4 configuré sur la préprod.']);
+    mk('ines', 'Inès Moreau', 'Designer · CDD — Campagne lancement', '#ff6482', 'Fable · 1,60 $/Mtok', 19.88, '2 sous-tâches',
+      [40, 65, 65, 50, 30, 55], 'Contrat à durée déterminée : visuels de la campagne de lancement uniquement. Fin de contrat au lancement.',
+      ['fs:/projets/saas-photo/marketing/visuels'],
+      ['Direction artistique validée par Thomas le 12/07.']);
+    mk('julien', 'Julien Roche', 'Frontend · Dev', '#ffd60a', 'Sonnet · 3,00 $/Mtok', 42.31, '1 tâche (en pause)',
+      [55, 40, 75, 60, 45, 50], 'Développe la landing page et l’interface du produit.',
+      ['fs:/projets/saas-photo/app/web'],
+      ['Landing à 80 % — en pause budget depuis ce matin.']);
+    mk('sofia', 'Sofia Costa', 'Backend · Dev', '#ac8e68', 'Sonnet · 3,00 $/Mtok', 36.12, '1 tâche',
+      [60, 35, 85, 70, 55, 60], 'API, base de données et intégration Stripe.',
+      ['fs:/projets/saas-photo/app/api', 'secrets:clé Stripe test'],
+      ['Webhooks Stripe : 4/9 événements couverts.']);
+    mk('nadia', 'Nadia Belkacem', 'QA · Dev', '#8e8e93', 'Qwen 7B local · 0,00 $/Mtok', 0.00, '2 sous-tâches',
+      [65, 75, 95, 80, 60, 85], 'Relit, teste et casse ce que les autres produisent. Tourne gratuitement sur votre machine.',
+      ['fs:/projets/saas-photo (lecture)'],
+      ['12 anomalies ouvertes, 9 résolues.']);
+    this.TRAITS = ['Remise en question', 'Aversion au risque', 'Rigueur', 'Concision', 'Formalisme', 'Gestion budgétaire'];
+    const n = (emp, title, st, cost, depth) => ({ emp, title, st, cost, depth });
+    this.TASKS = [
+      { id: 't1', title: 'Intégration paiement Stripe', st: 'doing', done: 2, total: 8, alloc: 90, spent: 34.60, eng: 40, q: 0,
+        desc: 'Mettre en place le paiement par abonnement : checkout, webhooks, factures et coupons de lancement.',
+        note: 'Lourde mais standard, ~22 % du budget projet. J’ai réservé 40 $ d’engagement pour couvrir les tests.',
+        objectives: [['Checkout abonnement mensuel', true], ['Webhooks (9 événements)', false], ['Factures PDF automatiques', false], ['Coupon de lancement −30 %', false]],
+        tree: [n('karim', 'Architecture paiement', 'done', 5.10, 0), n('sofia', 'Endpoints checkout', 'done', 12.40, 1), n('sofia', 'Webhooks Stripe', 'doing', 9.80, 1), n('nadia', 'Tests webhooks', 'todo', 0, 2), n('julien', 'Écran facturation', 'todo', 0, 1)],
+        deliverables: [['schema-paiement-v2.md', 'Karim · 11 juil.'], ['checkout-demo.mp4', 'Sofia · hier']],
+        qa: [['karim', 'Karim', 'hier 16:20', 'Stripe test ou live pour la démo de vendredi ? Je pars sur test par défaut.'], ['vous', 'Vous', 'hier 17:05', 'Test, on passera en live après l’audit sécurité.']] },
+      { id: 't2', title: 'Campagne de lancement', st: 'doing', done: 4, total: 7, alloc: 72, spent: 41.20, eng: 12, q: 1,
+        desc: 'Préparer et orchestrer le lancement public : plan de campagne, séquence emails, visuels réseaux et relais influenceurs. Objectif : 500 inscrits la première semaine.',
+        note: 'Complexe, ~18 % du budget projet. La dépendance au ciblage est le principal risque de dérapage.',
+        objectives: [['Plan de campagne validé', true], ['Séquence de 3 emails', false], ['Visuels 4 formats', false], ['5 influenceurs contactés', true]],
+        tree: [n('thomas', 'Plan de campagne', 'done', 6.40, 0), n('chloe', 'Calendrier éditorial', 'done', 3.15, 1), n('chloe', 'Séquence emails', 'blocked', 4.88, 1), n('ines', 'Visuels réseaux', 'doing', 9.32, 0), n('ines', 'Déclinaisons formats', 'todo', 0, 1), n('hugo', 'Tracking landing', 'doing', 2.05, 0), n('thomas', 'Brief influenceurs', 'review', 5.40, 0)],
+        deliverables: [['Plan de campagne v2.pdf', 'Thomas · 10 juil.'], ['Calendrier éditorial.csv', 'Chloé · 12 juil.'], ['email-1-annonce.md', 'Chloé · ce matin']],
+        qa: [['thomas', 'Thomas', 'aujourd’hui 12:02', 'Quel est le public cible prioritaire ? Chloé est bloquée sur l’email 2 — j’ai remonté la question dans votre inbox.']] },
+      { id: 't3', title: 'Landing page produit', st: 'paused', done: 3, total: 6, alloc: 25, spent: 25.00, eng: 0, q: 0,
+        desc: 'Concevoir et développer la landing page : hero, démo interactive, pricing, capture d’emails.',
+        note: 'Enveloppe atteinte à 100 % — tout est en pause. Il manque ~2 h de travail selon Julien (≈ 6,50 $). Décision attendue dans l’inbox.',
+        objectives: [['Maquette validée', true], ['Hero + démo', true], ['Pricing', true], ['Capture emails + RGPD', false]],
+        tree: [n('julien', 'Développement landing', 'paused', 19.60, 0), n('nadia', 'Revue accessibilité', 'paused', 0, 1), n('hugo', 'Balises SEO', 'done', 5.40, 0)],
+        deliverables: [['maquette-landing-v3.fig', 'Julien · 8 juil.']],
+        qa: [] },
+      { id: 't4', title: 'Étude concurrence', st: 'review', done: 5, total: 5, alloc: 30, spent: 22.15, eng: 0, q: 0,
+        desc: 'Cartographier les 8 concurrents directs : pricing, positionnement, canaux d’acquisition, avis clients.',
+        note: 'Simple, bien cadrée. Terminée sous budget : 7,85 $ restitués à l’enveloppe. À archiver après votre lecture.',
+        objectives: [['8 concurrents analysés', true], ['Grille de pricing comparée', true], ['3 segments cibles proposés', true]],
+        tree: [n('chloe', 'Collecte & analyse', 'done', 14.30, 0), n('hugo', 'Données SEO concurrents', 'done', 4.20, 1), n('chloe', 'Rédaction du rapport', 'done', 3.65, 0)],
+        deliverables: [['Étude concurrence v3.pdf', 'Chloé · hier 18:42']],
+        qa: [] },
+      { id: 't5', title: 'Identité de marque', st: 'todo', done: 0, total: 4, alloc: 45, spent: 0, eng: 0, q: 0,
+        desc: 'Nom définitif, logo, palette et ton de voix. Léa propose de geler cette tâche jusqu’au mois prochain.',
+        note: 'Non urgente. Je recommande de la geler : le lancement peut se faire sous le nom de code actuel.',
+        objectives: [['Shortlist de 5 noms', false], ['Logo + déclinaisons', false], ['Guide de ton', false]],
+        tree: [n('ines', 'Pistes visuelles', 'todo', 0, 0), n('chloe', 'Naming & ton', 'todo', 0, 0)],
+        deliverables: [], qa: [] }
+    ];
+    this.CEOS = [
+      { name: 'Léa Fontaine', badge: 'Recommandée', badgeC: '#30d158', color: '#bf5af2', pitch: 'Structurée, orientée process. Économe par défaut, sait débloquer du budget quand le ROI est démontré.', t: [['Rigueur', 85], ['Aversion au risque', 70], ['Gestion budgétaire', 90]] },
+      { name: 'Marc-Antoine Vidal', badge: 'Profil offensif', badgeC: '#ff9f0a', color: '#0a84ff', pitch: 'Va vite, dépense vite. Excellent pour un sprint de lancement, à surveiller sur la durée.', t: [['Rigueur', 60], ['Aversion au risque', 25], ['Gestion budgétaire', 45]] },
+      { name: 'Élise Rambert', badge: 'Profil créatif', badgeC: '#bf5af2', color: '#ff6482', pitch: 'Créative, tolère le risque et l’ambiguïté. Idéale pour un produit qui cherche encore sa forme.', t: [['Rigueur', 55], ['Aversion au risque', 40], ['Gestion budgétaire', 60]] }
+    ];
+    this.fmt = v => v.toFixed(2).replace('.', ',') + ' $';
+  }
+  pill(st) { const [sl, sc] = this.S[st]; return { sl, sc, sbg: `color-mix(in srgb, ${sc} 15%, transparent)` }; }
+  member(id, tag, pad) {
+    const e = this.E[id], f = this.fmt;
+    return { ...e, spent: f(e.spend), tag: tag || '', pad: pad || 0,
+      tagC: tag === 'HEAD' ? '#0a84ff' : '#ff6482',
+      tagBg: tag ? `color-mix(in srgb, ${tag === 'HEAD' ? '#0a84ff' : '#ff6482'} 15%, transparent)` : 'transparent',
+      open: () => this.setState({ emp: id }) };
+  }
+  renderVals() {
+    const { tab, theme, expanded, emp, report, ceo, perm, q, signed } = this.state;
+    const f = this.fmt;
+    const nav = {}; ['T:taches', 'O:org', 'I:inbox', 'A:audit', 'C:compta', 'R:reglages'].forEach(s => {
+      const [k, t] = s.split(':'); const on = tab === t;
+      nav['nb' + k] = on ? 'var(--card)' : 'transparent'; nav['nf' + k] = on ? 'var(--text)' : 'var(--text2)';
+      nav['go' + k] = () => this.setState({ tab: t });
+    });
+    const tasks = this.TASKS.map(t => {
+      const p = this.pill(t.st);
+      return { ...t, ...p, expanded: expanded === t.id, chev: expanded === t.id ? '▾' : '▸',
+        toggle: () => this.setState(s => ({ expanded: s.expanded === t.id ? null : t.id })),
+        hasQ: t.q > 0, qLabel: t.q + ' question', progress: t.done + '/' + t.total,
+        pct: Math.round(t.done / t.total * 100), spent: f(t.spent), alloc: f(t.alloc),
+        bpct: Math.min(100, Math.round(t.spent / t.alloc * 100)), epct: Math.round(t.eng / t.alloc * 100),
+        ceoNote: t.note,
+        objectives: t.objectives.map(([label, done]) => ({ label, mark: done ? '✓' : '', deco: done ? 'line-through' : 'none', fg: done ? 'var(--text3)' : 'var(--text)', bg: done ? '#30d158' : 'transparent', bc: done ? '#30d158' : 'var(--text3)' })),
+        tree: t.tree.map(nd => { const e = this.E[nd.emp], pp = this.pill(nd.st); return { ...pp, title: nd.title, who: e.name.split(' ')[0], init: e.init, color: e.color, cost: nd.cost ? f(nd.cost) : '—', pad: nd.depth * 24, branch: nd.depth ? '└' : '' }; }),
+        deliverables: t.deliverables.map(([name, meta]) => ({ name, meta })),
+        qa: t.qa.map(([id, who, when, text]) => ({ who, when, text, init: id === 'vous' ? 'V' : this.E[id].init, color: id === 'vous' ? 'var(--accent)' : this.E[id].color })) };
+    });
+    const sel = emp && this.E[emp];
+    const fiche = sel ? { ...sel, spent: f(sel.spend),
+      traits: sel.traits.map((v, i) => ({ label: this.TRAITS[i], v })),
+      perms: sel.perms.map(s => { const [k, label] = s.split(':'); return { label, c: { fs: '#0a84ff', web: '#30d158', shell: '#ff9f0a', org: '#bf5af2', secrets: '#ff453a' }[k] || '#8e8e93' }; }),
+      memory: sel.memory.map(text => ({ text })),
+      history: [
+        { when: 'auj. 09:18', what: 'Intervention sur sous-tâche assignée', cost: f(0.14) },
+        { when: 'hier 16:40', what: 'Livrable produit et transmis au HEAD', cost: f(1.22) },
+        { when: '14 juil.', what: 'Délégation reçue, plan de travail établi', cost: f(0.36) },
+        { when: '11 juil.', what: 'Embauche · brief de poste intégré en mémoire', cost: f(0.08) }
+      ] } : null;
+    const burnVals = [400, 392, 381, 372, 358, 346, 331, 322, 308, 301, 289, 281, 272, 262, 255, 247, 240];
+    const burn = burnVals.map((v, i) => ({ d: String(i + 1), h: Math.round(v / 400 * 100), bg: i === 16 ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)' }));
+    const top = [['Léa F.', 50.94, '#bf5af2'], ['Julien R.', 42.31, '#ffd60a'], ['Sofia C.', 36.12, '#ac8e68'], ['Karim B.', 31.77, '#0a84ff'], ['Thomas P.', 24.10, '#ff9f0a'], ['Inès M.', 19.88, '#ff6482']];
+    const empBars = top.map(([name, v, color]) => ({ name, color, amt: f(v), pct: Math.round(v / 50.94 * 100) }));
+    const models = [['Sonnet', 185.24, '#0a84ff'], ['Haiku', 34.88, '#30d158'], ['Fable', 19.88, '#ff6482'], ['Qwen local', 0, '#8e8e93']];
+    const modelBars = models.map(([name, v, color]) => ({ name, color, amt: f(v), pct: Math.round(v / 185.24 * 100) }));
+    const J = [['17 juil. 09:41', 'Pause budget', '#ff453a', '« Landing page produit » — enveloppe épuisée, travaux gelés', '', ''],
+      ['17 juil. 09:18', 'Consommation', '#0a84ff', 'Chloé Martin · Sonnet→Haiku · séquence emails', '−0,14 $', '160,00 $'],
+      ['16 juil. 18:42', 'Restitution', '#30d158', '« Étude concurrence » clôturée sous budget', '+7,85 $', '160,14 $'],
+      ['16 juil. 16:40', 'Consommation', '#0a84ff', 'Sofia Costa · webhooks Stripe', '−4,62 $', '152,29 $'],
+      ['15 juil. 11:03', 'Allocation', '#bf5af2', 'Engagement 40,00 $ réservé sur « Intégration Stripe »', '−40,00 $', '156,91 $'],
+      ['14 juil. 09:12', 'Rallonge', '#ff9f0a', '« Campagne de lancement » +12,00 $ validée par vous', '+12,00 $', '196,91 $'],
+      ['13 juil. 17:55', 'Consommation', '#0a84ff', 'Inès Moreau · visuels réseaux (Fable)', '−3,41 $', '184,91 $']];
+    const journal = J.map(([date, type, tc, label, amount, solde]) => ({ date, type, tc, tbg: `color-mix(in srgb, ${tc} 15%, transparent)`, label, amount, solde, ac: amount.startsWith('+') ? '#30d158' : amount ? 'var(--text)' : 'var(--text3)' }));
+    const ceos = this.CEOS.map((c, i) => ({ ...c, init: c.name.split(' ').map(w => w[0]).join('').slice(0, 2), pick: () => this.setState({ ceo: i, signed: false }),
+      border: ceo === i ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+      traits: c.t.map(([label, v]) => ({ label, v })) }));
+    return {
+      theme, themeLabel: theme === 'dark' ? '☾ Sombre' : '☀ Clair',
+      toggleTheme: () => this.setState(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+      ...nav, goF: () => this.setState({ tab: 'fondation' }),
+      showT: tab === 'taches', showO: tab === 'org', showI: tab === 'inbox', showAu: tab === 'audit',
+      showC: tab === 'compta', showF: tab === 'fondation', showR: tab === 'reglages',
+      tasks,
+      mkt: [this.member('thomas', 'HEAD'), this.member('chloe', '', 22), this.member('hugo', '', 22), this.member('ines', 'CDD', 22)],
+      dev: [this.member('karim', 'HEAD'), this.member('julien', '', 22), this.member('sofia', '', 22), this.member('nadia', '', 22)],
+      openLea: () => this.setState({ emp: 'lea' }),
+      empOpen: !!fiche, emp: fiche, closeEmp: () => this.setState({ emp: null }),
+      reportOpen: report, reportChev: report ? '▾' : '▸', toggleReport: () => this.setState(s => ({ report: !s.report })),
+      permPending: !perm, permDone: !!perm,
+      permMsg: perm === 'once' ? '✓ Accès shell accordé pour cette exécution — Karim a relancé les tests.' : perm === 'always' ? '✓ Accès shell permanent accordé à Karim (révocable depuis sa fiche).' : '✕ Accès refusé — Karim cherchera une alternative sans shell.',
+      permOnce: () => this.setState({ perm: 'once' }), permAlways: () => this.setState({ perm: 'always' }), permDeny: () => this.setState({ perm: 'denied' }),
+      qPending: !q, qDone: q, answerQ: () => this.setState({ q: true }),
+      burn, empBars, modelBars, journal,
+      ceos, pickedName: this.CEOS[ceo].name,
+      sign: () => this.setState({ signed: true }),
+      signBg: signed ? '#30d158' : 'var(--accent)', signLabel: signed ? '✓ Contrat signé' : 'Signer le contrat'
+    };
+  }
+}
+</script>
+</body>
+</html>

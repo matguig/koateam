@@ -1,0 +1,26 @@
+name: Nightly endurance
+
+# Endurance longue chaque nuit : 200 tâches en cascade complète (~1h de
+# workers éphémères en continu). Le test 48 h complet (SPEC-V1, critère 11)
+# se fera sur machine réelle avant release — hors limites GitHub Actions.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  endurance-long:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Endurance 200 tâches (cascade CEO → sous-tâches → livraison)
+        working-directory: daemon
+        run: |
+          npm ci
+          npm run build
+          node scripts/endurance.mjs 200

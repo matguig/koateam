@@ -1,0 +1,22 @@
+{
+  "name": "koateam-daemon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "endurance": "node scripts/endurance.mjs",
+    "bundle": "esbuild dist/index.js --bundle --platform=node --format=cjs --external:bufferutil --external:utf-8-validate --outfile=dist/bundle.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.24.2",
+    "postject": "^1.0.0-alpha.6",
+    "typescript": "~5.6.2"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.21.1"
+  }
+}

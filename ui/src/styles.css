@@ -1,0 +1,35 @@
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+:root, [data-theme="dark"] {
+  --bg: #161618; --side: #1d1d20; --card: #232327; --card2: #29292e;
+  --border: rgba(255,255,255,.09); --text: #f2f2f4; --text2: #a2a2ab; --text3: #71717a;
+  --accent: #0a84ff; --shadow: 0 12px 40px rgba(0,0,0,.5);
+}
+[data-theme="light"] {
+  --bg: #f5f5f7; --side: #ebebee; --card: #ffffff; --card2: #f4f4f6;
+  --border: rgba(0,0,0,.1); --text: #1d1d1f; --text2: #63636b; --text3: #97979e;
+  --accent: #0071e3; --shadow: 0 12px 40px rgba(0,0,0,.14);
+}
+* { box-sizing: border-box; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: var(--border); border-radius: 6px;
+  border: 2px solid transparent; background-clip: padding-box;
+}
+input, textarea, select, button { font-family: inherit; }
+input[type="range"] { accent-color: var(--accent); }
+@keyframes kpulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* États hover (les styles inline ne les couvrent pas) */
+.hov-row:hover { background: var(--card2); }
+.hov-accent:hover { border-color: var(--accent) !important; }
+.hov-border:hover { border-color: var(--text3) !important; }
+.hov-text:hover { color: var(--text) !important; }
+.hov-link:hover { color: var(--accent) !important; border-color: var(--accent) !important; }
+.hov-bright:hover { filter: brightness(1.1); }
