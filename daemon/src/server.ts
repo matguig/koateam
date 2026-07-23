@@ -38,8 +38,13 @@ export function createApi(ctx: ApiContext) {
     const employees = store.listEmployees(ws.id).map((e) => ({
       ...e, spent: store.spentByEmployee(e.id),
     }))
-    const tasks = store.listTasks(ws.id)
-      .filter((t) => !t.parent_id)
+    // L'état courant ne transporte pas tout l'historique : les tâches
+    // archivées au-delà des 10 dernières en sortent (sinon la réponse — et
+    // le tas V8 du démon — grossit sans borne ; trouvé par la nightly 200).
+    const allMain = store.listTasks(ws.id).filter((t) => !t.parent_id)
+    const archived = allMain.filter((t) => t.status === 'archived')
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 10)
+    const tasks = [...allMain.filter((t) => t.status !== 'archived'), ...archived]
       .map((t) => ({
         ...t,
         spent: store.spentOnTask(t.id),
@@ -95,8 +100,13 @@ export function createApi(ctx: ApiContext) {
 
     try {
       if (req.method === 'GET' && path === '/status') {
+        const mem = process.memoryUsage()
         return json(res, 200, {
-          rss: process.memoryUsage().rss,
+          rss: mem.rss,
+          heapUsed: mem.heapUsed,
+          heapTotal: mem.heapTotal,
+          external: mem.external,
+          arrayBuffers: mem.arrayBuffers,
           peakRss: ctx.peakRss(),
           watchdogAlerts: ctx.watchdogAlerts(),
           interventionsDone: runner.interventionsDone,

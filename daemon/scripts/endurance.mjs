@@ -64,12 +64,19 @@ try {
   if (alerts.length === 0) throw new Error('ÉCHEC : pas d’alerte inbox de pause budget')
   console.log(`✓ garde-fou budget : pause propre + alerte inbox\n`)
 
-  // 2. Endurance : N tâches complètes (CEO + sous-tâches à chaque fois)
+  // 2. Endurance : N tâches complètes (CEO + sous-tâches à chaque fois).
+  // Critère mémoire : le tas V8 s'agrandit à l'échauffement puis PLAFONNE
+  // (heapUsed reste bas, diagnostic du 23/07) — une fuite, elle, grimpe
+  // linéairement. On mesure donc la dérive APRÈS échauffement (¼ du run),
+  // plus le plafond absolu de la spec (< 200 Mo).
+  const warmAt = Math.max(1, Math.floor(N / 4))
+  let warmRss = null
   const doneList = []
   for (let i = 1; i <= N; i++) {
     const t = await runTask(`Tâche d'endurance n°${i}`, 0.05)
     doneList.push(t)
     const s = await get('/status')
+    if (i === warmAt) warmRss = s.rss
     process.stdout.write(`  tâche ${String(i).padStart(2)}/${N} · ${t.status} · ${t.subtasks.length} sous-tâches · RSS démon ${mb(s.rss)} Mo\n`)
     await post(`/tasks/${t.id}/archive`)
   }
@@ -78,19 +85,22 @@ try {
   const final = await get('/status')
   const state = await get('/state')
   const doneCount = doneList.filter((t) => t.status === 'done').length
-  const drift = final.rss - baseline
+  const warmDrift = final.rss - (warmRss ?? baseline)
 
   console.log(`\n=== Résultats ===`)
   console.log(`tâches livrées           : ${doneCount}/${N} (+1 pause budget volontaire)`)
   console.log(`interventions exécutées  : ${final.interventionsDone} (workers éphémères)`)
   console.log(`comptabilité             : consommé ${state.totals.consumption.toFixed(6)} $ · restitué ${state.totals.release.toFixed(6)} $`)
-  console.log(`RSS démon repos → final  : ${mb(baseline)} → ${mb(final.rss)} Mo (dérive ${drift >= 0 ? '+' : ''}${mb(drift)} Mo)`)
+  console.log(`RSS démon froid → chaud (tâche ${warmAt}) → final : ${mb(baseline)} → ${mb(warmRss ?? baseline)} → ${mb(final.rss)} Mo`)
+  console.log(`dérive après échauffement : ${warmDrift >= 0 ? '+' : ''}${mb(warmDrift)} Mo sur ${N - warmAt} tâches`)
   console.log(`RSS démon pic            : ${mb(final.peakRss)} Mo · alertes watchdog : ${final.watchdogAlerts}`)
   console.log(`RSS worker pic           : ${mb(final.workerPeakRss)} Mo (rendue à l'OS après chaque intervention)`)
 
-  const LIMIT_DRIFT = 30 * 1024 * 1024
-  const ok = doneCount === N && drift < LIMIT_DRIFT && final.watchdogAlerts === 0
-  console.log(`\n${ok ? '✅ ENDURANCE OK' : '❌ ENDURANCE ÉCHOUÉE'} (critère : dérive < 30 Mo, 0 alerte watchdog, ${N}/${N} tâches)`)
+  const LIMIT_WARM_DRIFT = 25 * 1024 * 1024   // une fuite réelle dépasserait largement
+  const LIMIT_ABSOLUTE = 200 * 1024 * 1024    // objectif SPEC-V1 §5.2
+  const ok = doneCount === N && warmDrift < LIMIT_WARM_DRIFT
+    && final.rss < LIMIT_ABSOLUTE && final.watchdogAlerts === 0
+  console.log(`\n${ok ? '✅ ENDURANCE OK' : '❌ ENDURANCE ÉCHOUÉE'} (critères : dérive après échauffement < 25 Mo, RSS finale < 200 Mo, 0 alerte watchdog, ${N}/${N} tâches)`)
   process.exitCode = ok ? 0 : 1
 } finally {
   daemon.kill()
